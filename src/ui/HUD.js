@@ -96,6 +96,10 @@ export class HUD {
           <div><b style="color: #63b3ed;">[滑鼠轉向]</b> 旋轉視角</div>
           <div><b style="color: #63b3ed;">[ESC]</b> 釋放滑鼠</div>
         </div>
+
+        <div style="margin-top: 14px; font-size: 0.82rem; color: #48bb78; font-weight: bold; letter-spacing: 0.5px;">
+          ✓ 最新版本 v0.2.2 • 安全基地掩體與 4 名電腦 Bot 對抗已啟用
+        </div>
       </div>
     `;
 
