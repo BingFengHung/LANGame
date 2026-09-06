@@ -281,3 +281,7 @@ export class Game {
     this.dualCamera.render(this.renderer, this.sceneManager.scene);
   }
 }
+
+if (typeof window !== 'undefined') {
+  window.Game = Game;
+}

@@ -47,7 +47,8 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   try {
-    const game = new Game(canvas, uiContainer);
+    const GameClass = typeof Game !== 'undefined' ? Game : window.Game;
+    const game = new GameClass(canvas, uiContainer);
     game.start();
     console.log('LANGame 核心啟動成功！');
   } catch (err) {
