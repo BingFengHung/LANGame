@@ -13,23 +13,23 @@ export class SceneManager {
   initEnvironment() {
     // 天空背景與淡霧 (復古沙漠色調，類似 CS Dust2)
     this.scene.background = new THREE.Color(0xdce7f0);
-    this.scene.fog = new THREE.FogExp2(0xdce7f0, 0.012);
+    this.scene.fog = new THREE.FogExp2(0xdce7f0, 0.009);
 
-    // 半球環境光 (天空偏藍，地面偏暖沙色)
-    const hemiLight = new THREE.HemisphereLight(0xfff8ee, 0x8d7a65, 0.7);
-    hemiLight.position.set(0, 50, 0);
+    // 半球環境光
+    const hemiLight = new THREE.HemisphereLight(0xfff8ee, 0x8d7a65, 0.75);
+    hemiLight.position.set(0, 60, 0);
     this.scene.add(hemiLight);
 
-    // 陽光平行光 (投射柔和陰影)
-    const sunLight = new THREE.DirectionalLight(0xfff4d6, 1.4);
-    sunLight.position.set(35, 60, 25);
+    // 陽光平行光
+    const sunLight = new THREE.DirectionalLight(0xfff4d6, 1.45);
+    sunLight.position.set(45, 80, 35);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 150;
+    sunLight.shadow.camera.far = 250;
 
-    const d = 45;
+    const d = 70;
     sunLight.shadow.camera.left = -d;
     sunLight.shadow.camera.right = d;
     sunLight.shadow.camera.top = d;
@@ -41,113 +41,126 @@ export class SceneManager {
 
   buildMap() {
     // 材質快取
-    const groundMat = new THREE.MeshStandardMaterial({
-      color: 0xc8b293, // 沙地
-      roughness: 0.9,
-      metalness: 0.1
-    });
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0xc8b293, roughness: 0.9, metalness: 0.1 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a7f73, roughness: 0.85, metalness: 0.05 });
+    const lowWallMat = new THREE.MeshStandardMaterial({ color: 0x766d63, roughness: 0.8 });
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0xa06d42, roughness: 0.7 });
+    const crateDarkMat = new THREE.MeshStandardMaterial({ color: 0x7a5231, roughness: 0.7 });
+    const rampMat = new THREE.MeshStandardMaterial({ color: 0x9b9084, roughness: 0.85 });
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x5a6370, roughness: 0.75 }); // 基地深色強化混凝土
 
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: 0x8a7f73, // 水泥/磚牆
-      roughness: 0.85,
-      metalness: 0.05
-    });
-
-    const lowWallMat = new THREE.MeshStandardMaterial({
-      color: 0x766d63, // 矮掩體牆
-      roughness: 0.8
-    });
-
-    const crateMat = new THREE.MeshStandardMaterial({
-      color: 0xa06d42, // 木箱
-      roughness: 0.7
-    });
-
-    const crateDarkMat = new THREE.MeshStandardMaterial({
-      color: 0x7a5231, // 深色木箱
-      roughness: 0.7
-    });
-
-    const rampMat = new THREE.MeshStandardMaterial({
-      color: 0x9b9084, // 斜坡材質
-      roughness: 0.85
-    });
-
-    // 1. 主地面 (80m x 80m)
-    const groundGeo = new THREE.BoxGeometry(80, 2, 80);
+    // 1. 擴大主地面 (120m x 130m)
+    const groundGeo = new THREE.BoxGeometry(120, 2, 130);
     const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.position.y = -1; // 表面剛好在 y=0
+    ground.position.set(0, -1, 0);
     ground.receiveShadow = true;
     this.addStaticMesh(ground);
 
-    // 2. 外圍圍牆 (高 6m)
-    this.createBox(80, 6, 1, 0, 3, -40, wallMat);
-    this.createBox(80, 6, 1, 0, 3, 40, wallMat);
-    this.createBox(1, 6, 80, -40, 3, 0, wallMat);
-    this.createBox(1, 6, 80, 40, 3, 0, wallMat);
+    // 2. 外圍圍牆 (高 7m，邊界範圍 X: [-60, 60], Z: [-65, 65])
+    this.createBox(120, 7, 1.5, 0, 3.5, -65, wallMat); // 北牆
+    this.createBox(120, 7, 1.5, 0, 3.5, 65, wallMat);  // 南牆
+    this.createBox(1.5, 7, 130, -60, 3.5, 0, wallMat); // 西牆
+    this.createBox(1.5, 7, 130, 60, 3.5, 0, wallMat);  // 東牆
 
-    // 3. 中央交火區 - 掩體與矮牆
-    // 中路掩體 (高 1.2m，適合蹲伏射擊)
-    this.createBox(8, 1.2, 0.6, 0, 0.6, 0, lowWallMat);
-    this.createBox(0.6, 1.2, 8, -6, 0.6, -4, lowWallMat);
-    this.createBox(0.6, 1.2, 8, 6, 0.6, 4, lowWallMat);
+    // ========================================================
+    // 3. 玩家安全出生基地 (Player Safe Spawn Base / CT Base)
+    // 位於 Z: 42 ~ 56，完全阻擋外圍直接視線，具備掩體與雙出口
+    // ========================================================
+    // 基地後牆與側牆
+    this.createBox(24, 5, 1.5, 0, 2.5, 58, baseMat);
+    this.createBox(1.5, 5, 18, -12, 2.5, 49, baseMat);
+    this.createBox(1.5, 5, 18, 12, 2.5, 49, baseMat);
+    // 基地遮陽頂棚
+    this.createBox(24, 0.4, 18, 0, 5, 49, baseMat);
 
-    // 4. 堆疊木箱區 (測試跳躍、爬箱與高低差射擊)
-    // 基地 A 區木箱堆
-    this.createCrate(2, 2, 2, -12, 1, -10, crateMat);
-    this.createCrate(2, 2, 2, -10, 1, -10, crateMat);
-    this.createCrate(2, 2, 2, -11, 3, -10, crateDarkMat); // 疊在第二層 (高 4m)
+    // 基地正前方防護掩體牆 (阻擋中路直線狙擊，留出左通道與右通道)
+    this.createBox(10, 3.5, 1.2, 0, 1.75, 40, baseMat);
+    // 基地門口沙包掩體 (高 1.15m，玩家可蹲下完全掩護、站立探頭反擊)
+    this.createBox(6, 1.15, 0.8, -8, 0.58, 38, lowWallMat);
+    this.createBox(6, 1.15, 0.8, 8, 0.58, 38, lowWallMat);
 
-    this.createCrate(1.5, 1.5, 1.5, -15, 0.75, -8, crateDarkMat);
-    this.createCrate(1.5, 1.5, 1.5, -13.5, 0.75, -8, crateMat);
+    // 基地門外防禦木箱堆 (提供出門後的第一道防線)
+    this.createCrate(2, 2, 2, -4, 1, 33, crateMat);
+    this.createCrate(2, 2, 2, 4, 1, 33, crateDarkMat);
+    this.createCrate(1.6, 1.6, 1.6, 0, 0.8, 30, crateMat);
 
-    // 基地 B 區木箱堆
-    this.createCrate(2, 2, 2, 14, 1, 12, crateMat);
-    this.createCrate(2, 2, 2, 16, 1, 12, crateDarkMat);
-    this.createCrate(2, 2, 2, 15, 3, 12, crateMat);
+    // ========================================================
+    // 4. 中路交火區 (Mid Courtyard, Z: -5 ~ 25)
+    // ========================================================
+    // 經典中門 (Mid Doors，兩側厚水泥門柱，中間留有狹窄探頭縫隙)
+    this.createBox(12, 5, 1.2, -9, 2.5, 10, wallMat);
+    this.createBox(12, 5, 1.2, 9, 2.5, 10, wallMat);
+    // 中路門框橫樑
+    this.createBox(30, 1.2, 1.2, 0, 5.1, 10, wallMat);
 
-    // 5. 高台狙擊平台與上斜坡
-    // 高台平台 (長 16m x 寬 10m x 高 3m)
-    this.createBox(16, 3, 10, 15, 1.5, -20, wallMat);
+    // 中路掩體低牆與防禦箱
+    this.createBox(8, 1.2, 0.6, 0, 0.6, -2, lowWallMat);
+    this.createCrate(2, 2, 2, -5, 1, -2, crateMat);
+    this.createCrate(2, 2, 2, 5, 1, -2, crateDarkMat);
+    this.createCrate(2, 2, 2, 0, 1, -12, crateMat);
 
-    // 高台防護矮牆
-    this.createBox(16, 1, 0.4, 15, 3.5, -15.2, lowWallMat);
-    this.createBox(0.4, 1, 10, 22.8, 3.5, -20, lowWallMat);
+    // ========================================================
+    // 5. A 區戰場 (Bombsite A，東側 X: 25 ~ 55, Z: -50 ~ -10)
+    // ========================================================
+    // A 點長通道 (Long A Alley)
+    this.createBox(1.5, 5, 45, 22, 2.5, 12, wallMat); // A 長外側隔離牆
 
-    // 斜坡 (通往高台)
-    const rampGeo = new THREE.BoxGeometry(4, 0.4, 10);
+    // A 高台狙擊平台 (Catwalk / Balcony，高 3.2m)
+    this.createBox(18, 3.2, 14, 40, 1.6, -25, wallMat);
+    this.createBox(18, 1.1, 0.5, 40, 3.75, -18, lowWallMat); // 高台防護矮牆
+    this.createBox(0.5, 1.1, 14, 31, 3.75, -25, lowWallMat);
+
+    // 上高台斜坡
+    const rampGeo = new THREE.BoxGeometry(4.5, 0.4, 12);
     const ramp = new THREE.Mesh(rampGeo, rampMat);
-    // 斜坡長度與高度計算
-    ramp.position.set(5, 1.5, -20);
-    ramp.rotation.z = Math.atan2(3, 8); // 升至 3m
+    ramp.position.set(30, 1.6, -11);
+    ramp.rotation.x = Math.atan2(3.2, 12);
     ramp.castShadow = true;
     ramp.receiveShadow = true;
     this.addStaticMesh(ramp);
 
-    // 6. 階梯區域 (多段梯級)
-    const stepCount = 6;
+    // A 點堆疊集裝箱與木箱
+    this.createCrate(2.5, 2.5, 2.5, 42, 1.25, -40, crateMat);
+    this.createCrate(2.5, 2.5, 2.5, 45, 1.25, -40, crateDarkMat);
+    this.createCrate(2.5, 2.5, 2.5, 43.5, 3.75, -40, crateMat); // 雙層木箱
+
+    this.createCrate(2, 2, 2, 34, 1, -38, crateMat);
+    this.createBox(10, 1.2, 0.6, 40, 0.6, -34, lowWallMat);
+
+    // ========================================================
+    // 6. B 區長廊與掩體庫房 (Bombsite B，西側 X: -55 ~ -20, Z: -50 ~ -5)
+    // ========================================================
+    // B 洞長廊外牆
+    this.createBox(1.5, 5, 50, -22, 2.5, 10, wallMat);
+    // B 洞通道頂蓋 (走廊感)
+    this.createBox(14, 0.4, 35, -30, 4.8, 12, wallMat);
+
+    // B 點防禦矮牆與多處箱子掩體
+    this.createBox(12, 1.2, 0.8, -40, 0.6, -15, lowWallMat);
+    this.createBox(0.8, 1.2, 14, -34, 0.6, -22, lowWallMat);
+
+    this.createCrate(2.5, 2.5, 2.5, -42, 1.25, -30, crateDarkMat);
+    this.createCrate(2.5, 2.5, 2.5, -39, 1.25, -30, crateMat);
+    this.createCrate(2, 2, 2, -45, 1, -22, crateMat);
+    this.createCrate(2, 2, 2, -45, 3, -22, crateDarkMat);
+
+    // B 區階梯
+    const stepCount = 5;
     const stepHeight = 0.4;
-    const stepDepth = 0.8;
+    const stepDepth = 0.9;
     const stepWidth = 4;
     for (let i = 0; i < stepCount; i++) {
       this.createBox(
         stepWidth,
         (i + 1) * stepHeight,
         stepDepth,
-        -18,
+        -48,
         ((i + 1) * stepHeight) / 2,
-        15 + i * stepDepth,
+        -38 + i * stepDepth,
         wallMat
       );
     }
-    // 階梯連接的小平臺
-    this.createBox(6, stepCount * stepHeight, 6, -18, (stepCount * stepHeight) / 2, 15 + stepCount * stepDepth + 2.5, wallMat);
-
-    // 7. 長廊通道 (類似 CS 經典 A 門 / B 洞)
-    this.createBox(1.5, 4, 25, -28, 2, 0, wallMat);
-    this.createBox(1.5, 4, 25, -22, 2, 0, wallMat);
-    // 通道屋頂
-    this.createBox(7.5, 0.5, 25, -25, 4.25, 0, wallMat);
+    this.createBox(6, stepCount * stepHeight, 6, -48, (stepCount * stepHeight) / 2, -38 + stepCount * stepDepth + 2.5, wallMat);
   }
 
   createBox(w, h, d, x, y, z, mat) {
@@ -162,7 +175,6 @@ export class SceneManager {
 
   createCrate(w, h, d, x, y, z, mat) {
     const mesh = this.createBox(w, h, d, x, y, z, mat);
-    // 可在邊角加上線框強調 Low-Poly 質感
     const edges = new THREE.EdgesGeometry(mesh.geometry);
     const line = new THREE.LineSegments(
       edges,

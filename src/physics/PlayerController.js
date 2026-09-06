@@ -63,7 +63,7 @@ export class PlayerController {
     this.armor = 100;
     this.isDead = false;
 
-    this.spawn(new THREE.Vector3(0, 2, 8), 0);
+    this.spawn(new THREE.Vector3(0, 0, 48), 0);
     this.initEventListeners();
   }
 
@@ -369,7 +369,7 @@ export class PlayerController {
     };
   }
 
-  respawn(position = new THREE.Vector3(0, 2, 8), yaw = 0) {
+  respawn(position = new THREE.Vector3(0, 0, 48), yaw = 0) {
     this.hp = this.maxHp;
     this.armor = this.maxArmor;
     this.isDead = false;

@@ -75,10 +75,10 @@ export class Game {
     };
 
     this.bots = [
-      new AIBot(this.sceneManager.scene, 'Phoenix', new THREE.Vector3(0, 0, -12), botOptions),
-      new AIBot(this.sceneManager.scene, 'Cobra', new THREE.Vector3(-14, 0, -14), botOptions),
-      new AIBot(this.sceneManager.scene, 'Viper', new THREE.Vector3(14, 0, -10), botOptions),
-      new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-22, 0, 6), botOptions)
+      new AIBot(this.sceneManager.scene, 'Phoenix', new THREE.Vector3(0, 0, -8), botOptions),  // 中門防守
+      new AIBot(this.sceneManager.scene, 'Cobra', new THREE.Vector3(38, 0, -32), botOptions),  // A 點防守
+      new AIBot(this.sceneManager.scene, 'Viper', new THREE.Vector3(40, 3.2, -22), botOptions), // A 高台狙擊
+      new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-38, 0, -26), botOptions) // B 區防守
     ];
 
     // 11. 武器背包管理器
@@ -133,9 +133,9 @@ export class Game {
       this.hud.addKill(bot.name, 'You', 'AK-47', false);
       this.hud.showDeathScreen(bot.name);
 
-      // 2.5 秒後在基地重生
+      // 2.5 秒後在安全基地重生
       setTimeout(() => {
-        this.player.respawn(new THREE.Vector3(0, 2, 8), 0);
+        this.player.respawn(new THREE.Vector3(0, 0, 48), 0);
         this.hud.updateHealth(this.player.hp, this.player.armor);
         this.hud.hideDeathScreen();
       }, 2500);
