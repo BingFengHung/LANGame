@@ -207,6 +207,16 @@ export class WeaponView {
     }
   }
 
+  /**
+   * 施加滑鼠轉向時的武器慣性微晃動 (Mouse Look Sway)
+   */
+  applyMouseSway(deltaX, deltaY) {
+    this.mouseSwayX = (this.mouseSwayX || 0) - deltaX * 0.00035;
+    this.mouseSwayY = (this.mouseSwayY || 0) + deltaY * 0.00035;
+    this.mouseSwayX = Math.max(-0.025, Math.min(0.025, this.mouseSwayX));
+    this.mouseSwayY = Math.max(-0.02, Math.min(0.02, this.mouseSwayY));
+  }
+
   update(delta, currentSpeed, isMoving) {
     // 1. 槍口火花倒數熄滅
     if (this.flashTimer > 0) {
@@ -230,7 +240,11 @@ export class WeaponView {
     this.kickOffset.z += (0 - this.kickOffset.z) * Math.min(delta * 22, 1);
     this.kickRotation.x += (0 - this.kickRotation.x) * Math.min(delta * 22, 1);
 
-    // 4. 待機呼吸晃動與行走擺動
+    // 4. 滑鼠轉向慣性阻尼衰減 (快速回彈至中立)
+    this.mouseSwayX = (this.mouseSwayX || 0) * Math.max(0, 1 - delta * 18);
+    this.mouseSwayY = (this.mouseSwayY || 0) * Math.max(0, 1 - delta * 18);
+
+    // 5. 待機呼吸晃動與行走擺動
     const time = performance.now() * 0.002;
     let swayX = Math.sin(time) * 0.0015;
     let swayY = Math.cos(time * 1.5) * 0.0015;
@@ -240,10 +254,11 @@ export class WeaponView {
       swayY += Math.sin(time * 8) * 0.005 * Math.min(currentSpeed / 5, 1.2);
     }
 
-    this.gunPivot.position.x = this.defaultPos.x + swayX;
-    this.gunPivot.position.y = this.defaultPos.y + swayY + drawOffsetY;
+    this.gunPivot.position.x = this.defaultPos.x + swayX + this.mouseSwayX;
+    this.gunPivot.position.y = this.defaultPos.y + swayY + drawOffsetY + this.mouseSwayY;
     this.gunPivot.position.z = this.defaultPos.z + this.kickOffset.z;
 
-    this.gunPivot.rotation.x = this.kickRotation.x;
+    this.gunPivot.rotation.x = this.kickRotation.x + this.mouseSwayY * 1.5;
+    this.gunPivot.rotation.y = this.mouseSwayX * 1.8;
   }
 }

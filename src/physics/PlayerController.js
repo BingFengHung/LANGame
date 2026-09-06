@@ -78,6 +78,14 @@ export class PlayerController {
 
     document.addEventListener('pointerlockchange', () => {
       this.isLocked = document.pointerLockElement === this.domElement;
+      if (!this.isLocked) {
+        this.resetKeys();
+      }
+    });
+
+    // 視窗失去焦點時重置所有按鍵，防止放開 W 時事件被吃掉
+    window.addEventListener('blur', () => {
+      this.resetKeys();
     });
 
     // 滑鼠視角控制
@@ -86,6 +94,9 @@ export class PlayerController {
 
       const movementX = event.movementX || 0;
       const movementY = event.movementY || 0;
+
+      this.mouseDeltaX = (this.mouseDeltaX || 0) + movementX;
+      this.mouseDeltaY = (this.mouseDeltaY || 0) + movementY;
 
       // 水平轉動 (Yaw)
       this.camera.rotation.y -= movementX * this.mouseSensitivity;
@@ -98,47 +109,46 @@ export class PlayerController {
       );
     });
 
-    // 鍵盤按下
+    // 鍵盤按下與鬆開 (同時比對 code 與 key，避免中文輸入法造成 keyup 遺漏)
     window.addEventListener('keydown', (event) => {
-      this.onKeyChange(event.code, true);
+      this.onKeyChange(event, true);
     });
 
-    // 鍵盤鬆開
     window.addEventListener('keyup', (event) => {
-      this.onKeyChange(event.code, false);
+      this.onKeyChange(event, false);
     });
   }
 
-  onKeyChange(code, isPressed) {
-    switch (code) {
-      case 'KeyW':
-      case 'ArrowUp':
-        this.keys.forward = isPressed;
-        break;
-      case 'KeyS':
-      case 'ArrowDown':
-        this.keys.backward = isPressed;
-        break;
-      case 'KeyA':
-      case 'ArrowLeft':
-        this.keys.left = isPressed;
-        break;
-      case 'KeyD':
-      case 'ArrowRight':
-        this.keys.right = isPressed;
-        break;
-      case 'Space':
-        this.keys.jump = isPressed;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.keys.walk = isPressed;
-        break;
-      case 'KeyC':
-      case 'ControlLeft':
-      case 'ControlRight':
-        this.keys.crouch = isPressed;
-        break;
+  resetKeys() {
+    this.keys.forward = false;
+    this.keys.backward = false;
+    this.keys.left = false;
+    this.keys.right = false;
+    this.keys.jump = false;
+    this.keys.walk = false;
+    this.keys.crouch = false;
+    this.velocity.x = 0;
+    this.velocity.z = 0;
+  }
+
+  onKeyChange(event, isPressed) {
+    const code = event.code;
+    const key = event.key ? event.key.toLowerCase() : '';
+
+    if (code === 'KeyW' || key === 'w' || code === 'ArrowUp') {
+      this.keys.forward = isPressed;
+    } else if (code === 'KeyS' || key === 's' || code === 'ArrowDown') {
+      this.keys.backward = isPressed;
+    } else if (code === 'KeyA' || key === 'a' || code === 'ArrowLeft') {
+      this.keys.left = isPressed;
+    } else if (code === 'KeyD' || key === 'd' || code === 'ArrowRight') {
+      this.keys.right = isPressed;
+    } else if (code === 'Space' || key === ' ') {
+      this.keys.jump = isPressed;
+    } else if (code === 'ShiftLeft' || code === 'ShiftRight' || key === 'shift') {
+      this.keys.walk = isPressed;
+    } else if (code === 'KeyC' || key === 'c' || code === 'ControlLeft' || code === 'ControlRight' || key === 'control') {
+      this.keys.crouch = isPressed;
     }
   }
 
@@ -172,47 +182,62 @@ export class PlayerController {
     }
 
     // 4. 地面摩擦與急停阻尼 (Friction Damping)
-    if (this.onGround) {
-      // 水平速度分量阻尼衰減 (鬆開鍵盤時急停)
-      const damping = Math.max(0, 1 - this.friction * delta);
-      this.velocity.x *= damping;
-      this.velocity.z *= damping;
+    // 無論地面或空中，皆使用負指數阻尼進行速度衰減
+    const dampingFactor = this.onGround ? -12.0 : -2.5;
+    const damping = Math.exp(dampingFactor * delta) - 1.0;
+    this.velocity.x += this.velocity.x * damping;
+    this.velocity.z += this.velocity.z * damping;
 
-      // 地面加速
-      if (moveVector.lengthSq() > 0) {
-        this.velocity.x += moveVector.x * this.groundAccel * delta;
-        this.velocity.z += moveVector.z * this.groundAccel * delta;
-
-        // 限速保護
-        const horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
-        if (horizontalSpeed > targetSpeed) {
-          const ratio = targetSpeed / horizontalSpeed;
-          this.velocity.x *= ratio;
-          this.velocity.z *= ratio;
-        }
+    // 當沒有按鍵輸入且速度極小時，強制歸零避免持續向前飄移
+    if (moveVector.lengthSq() === 0) {
+      if (Math.hypot(this.velocity.x, this.velocity.z) < 0.1) {
+        this.velocity.x = 0;
+        this.velocity.z = 0;
       }
+    }
 
-      // 跳躍判定
+    // 地面與空中推力加速度
+    if (moveVector.lengthSq() > 0) {
+      const accel = this.onGround ? this.groundAccel : this.airAccel;
+      this.velocity.x += moveVector.x * accel * delta;
+      this.velocity.z += moveVector.z * accel * delta;
+
+      // 限速保護
+      const horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+      if (horizontalSpeed > targetSpeed) {
+        const ratio = targetSpeed / horizontalSpeed;
+        this.velocity.x *= ratio;
+        this.velocity.z *= ratio;
+      }
+    }
+
+    // 重力與跳躍
+    if (this.onGround) {
       if (this.keys.jump) {
         this.velocity.y = this.jumpSpeed;
         this.onGround = false;
+      } else {
+        // 微量向下吸附，避免在下坡或平地輕微跳幀造成浮空
+        this.velocity.y = -1.0;
       }
     } else {
-      // 空中控制 (微量轉向加速度，重力下墜)
-      if (moveVector.lengthSq() > 0) {
-        this.velocity.x += moveVector.x * this.airAccel * delta;
-        this.velocity.z += moveVector.z * this.airAccel * delta;
-      }
       this.velocity.y += this.gravity * delta;
     }
 
-    // 5. 碰撞檢測與物理推進 (Sub-stepping 確保高速移動不穿牆)
-    const steps = 3;
+    // 5. 碰撞檢測與物理推進 (Sub-stepping)
+    const steps = 4;
     const stepDelta = delta / steps;
+    let collidedGround = false;
+
     for (let i = 0; i < steps; i++) {
       this.capsule.translate(this.velocity.clone().multiplyScalar(stepDelta));
-      this.resolveCollision();
+      const hit = this.resolveCollision();
+      if (hit && hit.isGround) {
+        collidedGround = true;
+      }
     }
+
+    this.onGround = collidedGround;
 
     // 6. 相機位置同步至膠囊體頭頂 + 頭部微晃動
     const eyeHeight = this.currentHeight + 0.15;
@@ -237,23 +262,24 @@ export class PlayerController {
 
   resolveCollision() {
     const result = this.worldCollision.capsuleIntersect(this.capsule);
-    this.onGround = false;
-
     if (result) {
-      // 判定是否踩在地面 (斜率檢測，法向量 y > 0.35 視為可行走斜坡/地面)
-      this.onGround = result.normal.y > 0.35;
+      // 判定是否踩在地面 (斜率檢測，法向量 y > 0.35 視為地面/斜坡)
+      const isGround = result.normal.y > 0.35;
 
       // 修正膠囊體位移
       this.capsule.translate(result.normal.clone().multiplyScalar(result.depth));
 
-      if (this.onGround) {
+      if (isGround) {
         // 地面消除垂直下墜速度
         if (this.velocity.y < 0) this.velocity.y = 0;
       } else {
         // 撞牆滑動：將垂直於牆面法線的速度消除
         this.velocity.addScaledVector(result.normal, -this.velocity.dot(result.normal));
       }
+
+      return { isGround };
     }
+    return null;
   }
 
   /**
@@ -305,5 +331,12 @@ export class PlayerController {
 
   getPitch() {
     return this.camera.rotation.x;
+  }
+
+  getAndClearMouseDelta() {
+    const delta = { x: this.mouseDeltaX || 0, y: this.mouseDeltaY || 0 };
+    this.mouseDeltaX = 0;
+    this.mouseDeltaY = 0;
+    return delta;
   }
 }

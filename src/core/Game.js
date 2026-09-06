@@ -171,6 +171,10 @@ export class Game {
     // 同步持槍相機旋轉
     this.dualCamera.updateViewModel();
 
+    // 傳遞滑鼠轉向慣性擺動 (Mouse Look Sway)
+    const mouseDelta = this.player.getAndClearMouseDelta();
+    this.weaponView.applyMouseSway(mouseDelta.x, mouseDelta.y);
+
     // 更新第一人稱槍枝呼吸與行走擺動
     const currentSpeed = Math.hypot(this.player.velocity.x, this.player.velocity.z);
     this.weaponView.update(delta, currentSpeed, this.player.onGround && currentSpeed > 0.5);
