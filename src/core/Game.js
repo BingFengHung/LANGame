@@ -1,11 +1,15 @@
 import * as THREE from 'three';
+import { SceneManager } from '../graphics/SceneManager.js';
+import { DualCamera } from '../graphics/DualCamera.js';
+import { WorldCollision } from '../physics/WorldCollision.js';
+import { PlayerController } from '../physics/PlayerController.js';
+import { WeaponView } from '../graphics/WeaponView.js';
+import { HUD } from '../ui/HUD.js';
 
 export class Game {
-  constructor(canvas) {
+  constructor(canvas, uiContainer) {
     this.canvas = canvas;
-    this.renderer = null;
-    this.scene = null;
-    this.camera = null;
+    this.uiContainer = uiContainer;
     this.clock = new THREE.Clock();
     this.isRunning = false;
 
@@ -13,7 +17,7 @@ export class Game {
   }
 
   init() {
-    // 建立 WebGL 渲染器
+    // 1. 建立 WebGL 渲染器
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       antialias: true,
@@ -24,60 +28,44 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // 建立基本世界場景與相機
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a202c);
+    // 2. 雙相機系統
+    this.dualCamera = new DualCamera();
 
-    this.camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+    // 3. 場景管理器 (包含沙盒對戰地圖與光影)
+    this.sceneManager = new SceneManager();
+
+    // 4. 八叉樹物理碰撞系統
+    this.worldCollision = new WorldCollision();
+    this.worldCollision.buildFromMeshGroup(this.sceneManager.getCollisionGroup());
+
+    // 5. 角色控制器 (Capsule 碰撞 + CS 手感)
+    this.player = new PlayerController(
+      this.dualCamera.worldCamera,
+      this.canvas,
+      this.worldCollision
     );
-    this.camera.position.set(0, 2, 5);
 
-    // 基礎環境光與平行光
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    this.scene.add(ambientLight);
+    // 6. 第一人稱持槍模型 (ViewModel)
+    this.weaponView = new WeaponView(this.dualCamera.viewmodelScene);
 
-    const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
-    dirLight.position.set(20, 40, 20);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    this.scene.add(dirLight);
+    // 7. HUD 介面
+    this.hud = new HUD(this.uiContainer);
 
-    // 基礎地面 (測試用)
-    const floorGeo = new THREE.PlaneGeometry(50, 50);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x2d3748,
-      roughness: 0.8
+    // 監聽指針鎖定狀態以切換 UI
+    document.addEventListener('pointerlockchange', () => {
+      const isLocked = document.pointerLockElement === this.canvas;
+      this.hud.setLocked(isLocked);
     });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
-
-    // 測試方塊
-    const boxGeo = new THREE.BoxGeometry(2, 2, 2);
-    const boxMat = new THREE.MeshStandardMaterial({
-      color: 0xe53e3e,
-      roughness: 0.4
-    });
-    this.cube = new THREE.Mesh(boxGeo, boxMat);
-    this.cube.position.set(0, 1, 0);
-    this.cube.castShadow = true;
-    this.scene.add(this.cube);
 
     // 視窗縮放監聽
     window.addEventListener('resize', () => this.onWindowResize());
   }
 
   onWindowResize() {
-    if (!this.camera || !this.renderer) return;
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.renderer.setSize(width, height);
+    this.dualCamera.onWindowResize(width, height);
   }
 
   start() {
@@ -90,11 +78,21 @@ export class Game {
     requestAnimationFrame(() => this.animate());
 
     const delta = this.clock.getDelta();
-    if (this.cube) {
-      this.cube.rotation.y += delta * 0.8;
-      this.cube.rotation.x += delta * 0.4;
-    }
 
-    this.renderer.render(this.scene, this.camera);
+    // 更新角色物理與移動
+    this.player.update(delta);
+
+    // 同步持槍相機旋轉
+    this.dualCamera.updateViewModel();
+
+    // 更新第一人稱槍枝呼吸與行走擺動
+    const currentSpeed = Math.hypot(this.player.velocity.x, this.player.velocity.z);
+    this.weaponView.update(delta, currentSpeed, this.player.onGround && currentSpeed > 0.5);
+
+    // 更新準星動態擴散
+    this.hud.updateSpread(currentSpeed);
+
+    // 雙相機雙通道渲染 (杜絕貼牆穿模)
+    this.dualCamera.render(this.renderer, this.sceneManager.scene);
   }
 }

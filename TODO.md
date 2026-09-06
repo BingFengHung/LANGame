@@ -14,14 +14,14 @@
 ---
 
 ## 🎮 Phase 2: 3D 場景渲染與單人 FPS 角色控制器
-- [ ] 搭建 3D 渲染器與場景管理 (`SceneManager.js`)，配置光影、低多邊形風格材質與天空環境。
-- [ ] 建立測試訓練場地圖（包含平台、防禦箱、掩體矮牆、斜坡、階梯）。
-- [ ] 實作地圖靜態八叉樹碰撞網格 (`WorldCollision.js` 基於 Three.js Octree)。
-- [ ] 實作玩家膠囊體控制器 (`PlayerController.js` 基於 Capsule)：
-  - [ ] 滑鼠鎖定視角 (PointerLockControls，俯仰限制 -85° ~ +85°)。
-  - [ ] WASD 走位、加速度與地面摩擦阻力 (還原 CS 急停 Counter-Strafing 手感)。
-  - [ ] 跳躍 (初速 10 m/s)、空中重力墜落、下蹲機制 (膠囊體縮小至 1.2m)。
-- [ ] 實作雙相機渲染系統 (`DualCamera.js`)：World Camera + ViewModel Camera，徹底杜絕貼牆槍模穿模。
+- [x] 搭建 3D 渲染器與場景管理 (`SceneManager.js`)，配置光影、低多邊形風格材質與天空環境。
+- [x] 建立測試訓練場地圖（包含平台、防禦箱、掩體矮牆、斜坡、階梯）。
+- [x] 實作地圖靜態八叉樹碰撞網格 (`WorldCollision.js` 基於 Three.js Octree)。
+- [x] 實作玩家膠囊體控制器 (`PlayerController.js` 基於 Capsule)：
+  - [x] 滑鼠鎖定視角 (PointerLockControls，俯仰限制 -85° ~ +85°)。
+  - [x] WASD 走位、加速度與地面摩擦阻力 (還原 CS 急停 Counter-Strafing 手感)。
+  - [x] 跳躍 (初速 9.5 m/s)、空中重力墜落、下蹲機制 (膠囊體縮小至 1.2m)。
+- [x] 實作雙相機渲染系統 (`DualCamera.js`)：World Camera + ViewModel Camera，徹底杜絕貼牆槍模穿模。
 
 ---
 
