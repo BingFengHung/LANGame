@@ -318,13 +318,16 @@ export class AIBot {
     const hit = this.worldCollision.rayIntersect(downRay);
 
     if (hit) {
-      const targetY = hit.point.y;
-      if (this.group.position.y > targetY) {
-        // 重力下墜 (每秒 20m 墜地)
-        this.group.position.y = Math.max(targetY, this.group.position.y - 20.0 * delta);
-      } else {
-        // 上階梯或上坡立即抬升
-        this.group.position.y = targetY;
+      const pos = hit.point || hit.position;
+      if (pos && typeof pos.y === 'number') {
+        const targetY = pos.y;
+        if (this.group.position.y > targetY) {
+          // 重力下墜 (每秒 20m 墜地)
+          this.group.position.y = Math.max(targetY, this.group.position.y - 20.0 * delta);
+        } else {
+          // 上階梯或上坡立即抬升
+          this.group.position.y = targetY;
+        }
       }
     }
   }
