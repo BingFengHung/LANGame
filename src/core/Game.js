@@ -103,6 +103,10 @@ export class Game {
       this.hud.setLocked(isLocked);
     });
 
+    document.addEventListener('pointerlockerror', (e) => {
+      console.warn('PointerLock throttled or rejected by browser:', e);
+    });
+
     // 視窗縮放監聽
     window.addEventListener('resize', () => this.onWindowResize());
   }
@@ -135,7 +139,7 @@ export class Game {
 
       // 2.5 秒後在安全基地重生
       setTimeout(() => {
-        this.player.respawn(new THREE.Vector3(0, 0, 48), 0);
+        this.player.respawn(new THREE.Vector3(0, 0, 50), 0);
         this.hud.updateHealth(this.player.hp, this.player.armor);
         this.hud.hideDeathScreen();
       }, 2500);

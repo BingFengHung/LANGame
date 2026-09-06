@@ -7,11 +7,15 @@ export class HUD {
     this.onStartSinglePlayer = callbacks.onStartSinglePlayer || callbacks.onStart || null;
     this.onOpenMultiplayer = callbacks.onOpenMultiplayer || null;
 
+    this.hasStarted = false;
+
     this.crosshair = new Crosshair(this.container);
     this.killFeed = new KillFeed(this.container);
     this.blocker = null;
+    this.pauseOverlay = null;
 
     this.initOverlay();
+    this.initPauseOverlay();
     this.initGameHUD();
   }
 
@@ -25,7 +29,7 @@ export class HUD {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(10, 12, 16, 0.82);
+      background: rgba(10, 12, 16, 0.85);
       backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
@@ -36,12 +40,12 @@ export class HUD {
     `;
 
     this.blocker.innerHTML = `
-      <div style="text-align: center; max-width: 580px; width: 90%; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(22, 27, 34, 0.92); box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+      <div style="text-align: center; max-width: 580px; width: 90%; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(22, 27, 34, 0.95); box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
         <div style="display: inline-block; padding: 4px 12px; background: rgba(246, 173, 85, 0.15); border-radius: 20px; font-size: 0.8rem; color: #f6ad55; font-weight: bold; margin-bottom: 12px; letter-spacing: 1px;">
           AIR-GAPPED 1~3MS LAN FPS
         </div>
         <h1 style="font-size: 2.3rem; margin-bottom: 8px; color: #ffffff; letter-spacing: 2px;">3D 競技對戰射擊</h1>
-        <p style="font-size: 0.95rem; margin-bottom: 24px; color: #a0aec0;">選擇遊玩模式，單人模式內建敵方電腦 Bot 對抗</p>
+        <p style="font-size: 0.95rem; margin-bottom: 24px; color: #a0aec0;">安全基地已就緒，請選擇遊玩模式</p>
 
         <!-- 模式選擇按鈕群 -->
         <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
@@ -49,13 +53,12 @@ export class HUD {
             background: linear-gradient(135deg, #dd6b20, #ed8936);
             color: #ffffff;
             border: none;
-            padding: 14px 24px;
-            font-size: 1.1rem;
+            padding: 15px 24px;
+            font-size: 1.15rem;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(237, 137, 54, 0.35);
-            transition: transform 0.15s, box-shadow 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -68,12 +71,11 @@ export class HUD {
             background: rgba(49, 130, 206, 0.15);
             color: #63b3ed;
             border: 1px solid rgba(99, 179, 237, 0.5);
-            padding: 12px 24px;
+            padding: 13px 24px;
             font-size: 1rem;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -99,14 +101,12 @@ export class HUD {
 
     this.container.appendChild(this.blocker);
 
-    // 綁定單人模式進入按鈕
+    // 綁定單人模式進入按鈕 (點擊立即隱藏選單，絕不等待卡住)
     const btnSingle = this.blocker.querySelector('#btn-single-player');
     if (btnSingle) {
       btnSingle.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (this.onStartSinglePlayer) {
-          this.onStartSinglePlayer();
-        }
+        this.startGame();
       });
     }
 
@@ -117,17 +117,59 @@ export class HUD {
         e.stopPropagation();
         if (this.onOpenMultiplayer) {
           this.onOpenMultiplayer();
+        } else {
+          this.startGame();
         }
       });
     }
 
-    // 點擊面板周圍空白處亦可直接以單人模式進入遊戲
-    this.blocker.addEventListener('click', (e) => {
-      if (e.target === this.blocker) {
-        if (this.onStartSinglePlayer) {
-          this.onStartSinglePlayer();
-        }
-      }
+    // 點擊面板周圍空白處亦可直接開始遊戲
+    this.blocker.addEventListener('click', () => {
+      this.startGame();
+    });
+  }
+
+  initPauseOverlay() {
+    this.pauseOverlay = document.createElement('div');
+    this.pauseOverlay.id = 'pause-overlay';
+    this.pauseOverlay.className = 'interactive';
+    this.pauseOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 12, 16, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+      cursor: pointer;
+    `;
+    this.pauseOverlay.innerHTML = `
+      <div style="text-align: center; padding: 24px 36px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(22, 27, 34, 0.95); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <h2 style="font-size: 2rem; color: #f6ad55; margin-bottom: 8px;">⏸️ 遊戲暫停</h2>
+        <p style="font-size: 1rem; color: #e2e8f0; margin-bottom: 20px;">點擊任意處鎖定滑鼠並繼續戰鬥</p>
+        <button id="btn-resume" style="
+          background: #ed8936;
+          color: #ffffff;
+          border: none;
+          padding: 12px 30px;
+          font-size: 1.1rem;
+          font-weight: bold;
+          border-radius: 6px;
+          cursor: pointer;
+        ">繼續戰鬥</button>
+      </div>
+    `;
+
+    this.container.appendChild(this.pauseOverlay);
+
+    // 點擊暫停面板立即恢復遊戲
+    this.pauseOverlay.addEventListener('click', () => {
+      this.resumeGame();
     });
   }
 
@@ -266,14 +308,45 @@ export class HUD {
     this.container.appendChild(this.hudWrap);
   }
 
+  /**
+   * 點擊開始遊戲：立刻隱藏遮罩，絕不等待，同時觸發滑鼠鎖定
+   */
+  startGame() {
+    this.hasStarted = true;
+    this.blocker.style.display = 'none';
+    if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
+    this.hudWrap.style.display = 'block';
+    this.crosshair.show(true);
+
+    if (this.onStartSinglePlayer) {
+      this.onStartSinglePlayer();
+    }
+  }
+
+  resumeGame() {
+    if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
+    this.crosshair.show(true);
+
+    if (this.onStartSinglePlayer) {
+      this.onStartSinglePlayer();
+    }
+  }
+
   setLocked(isLocked) {
     if (isLocked) {
       this.blocker.style.display = 'none';
+      if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
       this.hudWrap.style.display = 'block';
       this.crosshair.show(true);
     } else {
-      this.blocker.style.display = 'flex';
-      this.crosshair.show(false);
+      // 只有在已開始遊戲過後按 ESC，才顯示小暫停面板；未開始前保留主選單
+      if (this.hasStarted) {
+        if (this.pauseOverlay) this.pauseOverlay.style.display = 'flex';
+        this.crosshair.show(false);
+      } else {
+        this.blocker.style.display = 'flex';
+        this.crosshair.show(false);
+      }
     }
   }
 

@@ -64,25 +64,20 @@ export class SceneManager {
 
     // ========================================================
     // 3. 玩家安全出生基地 (Player Safe Spawn Base / CT Base)
-    // 位於 Z: 42 ~ 56，完全阻擋外圍直接視線，具備掩體與雙出口
+    // 寬敞開放式 CT 出生廣場，提供前方掩體，左右各具備超寬闊出擊通道
     // ========================================================
-    // 基地後牆與側牆
-    this.createBox(24, 5, 1.5, 0, 2.5, 58, baseMat);
-    this.createBox(1.5, 5, 18, -12, 2.5, 49, baseMat);
-    this.createBox(1.5, 5, 18, 12, 2.5, 49, baseMat);
-    // 基地遮陽頂棚
-    this.createBox(24, 0.4, 18, 0, 5, 49, baseMat);
+    // 基地後牆與側翼防護牆
+    this.createBox(48, 5, 1.5, 0, 2.5, 60, baseMat);       // 後方護牆
+    this.createBox(1.5, 5, 20, -24, 2.5, 50, baseMat);     // 西側防護翼牆
+    this.createBox(1.5, 5, 20, 24, 2.5, 50, baseMat);      // 東側防護翼牆
 
-    // 基地正前方防護掩體牆 (阻擋中路直線狙擊，留出左通道與右通道)
-    this.createBox(10, 3.5, 1.2, 0, 1.75, 40, baseMat);
-    // 基地門口沙包掩體 (高 1.15m，玩家可蹲下完全掩護、站立探頭反擊)
-    this.createBox(6, 1.15, 0.8, -8, 0.58, 38, lowWallMat);
-    this.createBox(6, 1.15, 0.8, 8, 0.58, 38, lowWallMat);
+    // 基地正前方防護掩體 (高 1.25m，站立可瞄準中路、蹲下完全阻擋敵人射線)
+    this.createBox(8, 1.25, 1.0, 0, 0.625, 42, lowWallMat);
 
-    // 基地門外防禦木箱堆 (提供出門後的第一道防線)
-    this.createCrate(2, 2, 2, -4, 1, 33, crateMat);
-    this.createCrate(2, 2, 2, 4, 1, 33, crateDarkMat);
-    this.createCrate(1.6, 1.6, 1.6, 0, 0.8, 30, crateMat);
+    // 左右兩側寬敞出擊走廊掩體 (留出充足通行空間，絕不卡腳)
+    this.createCrate(2, 2, 2, -12, 1, 36, crateMat);       // 通往 B 區掩護箱
+    this.createCrate(2, 2, 2, 12, 1, 36, crateDarkMat);    // 通往 A 區掩護箱
+    this.createBox(6, 1.2, 0.8, 0, 0.6, 28, lowWallMat);   // 前進中路的第一道矮牆掩體
 
     // ========================================================
     // 4. 中路交火區 (Mid Courtyard, Z: -5 ~ 25)

@@ -213,11 +213,11 @@ export class AIBot {
   }
 
   flashRed() {
-    this.jacketMat.color.setHex(0xff2222);
-    this.headMat.color.setHex(0xff0000);
+    if (this.jacketMat) this.jacketMat.color.setHex(0xff2222);
+    if (this.skinMat) this.skinMat.color.setHex(0xff0000);
     setTimeout(() => {
-      this.jacketMat.color.setHex(0x9c4221);
-      this.headMat.color.setHex(0xd69e2e);
+      if (this.jacketMat) this.jacketMat.color.setHex(0x9c4221);
+      if (this.skinMat) this.skinMat.color.setHex(0xd69e2e);
     }, 120);
   }
 
@@ -265,11 +265,12 @@ export class AIBot {
       this.flashMesh.visible = false;
     }
 
-    // 3. 計算與玩家之距離
+    // 3. 計算與玩家之距離與視線遮擋
     const distToPlayer = this.group.position.distanceTo(playerPos);
+    const canSeePlayer = isPlayerAlive && distToPlayer < 40 && this.hasLineOfSight(playerPos);
 
-    // AI 狀態機轉換 (若玩家在 35m 內且存活，進入戰鬥狀態)
-    if (isPlayerAlive && distToPlayer < 35) {
+    // AI 狀態機轉換 (必須存活、距離 40m 內且視線無障礙物遮擋才進入 COMBAT)
+    if (canSeePlayer) {
       this.state = 'COMBAT';
     } else {
       this.state = 'PATROL';
@@ -280,6 +281,27 @@ export class AIBot {
     } else {
       this.updatePatrol(delta, now);
     }
+  }
+
+  /**
+   * 檢查 Bot 是否能直接看見玩家 (避免穿牆偵測與隔牆開火)
+   */
+  hasLineOfSight(playerPos) {
+    if (!this.worldCollision) return true;
+
+    const eyePos = this.group.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+    const targetPos = playerPos.clone().add(new THREE.Vector3(0, 1.2, 0));
+    const dir = targetPos.clone().sub(eyePos);
+    const dist = dir.length();
+    if (dist < 0.2) return true;
+    dir.normalize();
+
+    const ray = new THREE.Ray(eyePos, dir);
+    const hit = this.worldCollision.rayIntersect(ray);
+    if (hit && hit.distance < dist - 0.4) {
+      return false; // 被掩體或牆壁遮擋
+    }
+    return true;
   }
 
   /**
@@ -360,20 +382,30 @@ export class AIBot {
 
     const shootDir = targetWithSpread.clone().sub(muzzleWorld).normalize();
 
-    // 建立曳光線
+    // 檢查子彈是否被掩體或牆面阻擋 (杜絕隔牆射擊)
+    const dist = muzzleWorld.distanceTo(playerPos);
+    if (this.worldCollision) {
+      const ray = new THREE.Ray(muzzleWorld, shootDir);
+      const wallHit = this.worldCollision.rayIntersect(ray);
+      if (wallHit && wallHit.distance < dist) {
+        if (this.particleSystem) {
+          this.particleSystem.createImpactEffect(wallHit.point, wallHit.normal);
+          this.particleSystem.createTracer(muzzleWorld, wallHit.point);
+        }
+        return; // 被牆壁或掩體擋住，不對玩家造成傷害
+      }
+    }
+
+    // 未被阻擋：發射曳光線至目標
     if (this.particleSystem) {
       this.particleSystem.createTracer(muzzleWorld, targetWithSpread);
     }
 
-    // 判定是否命中玩家 (射線求交)
-    const ray = new THREE.Ray(muzzleWorld, shootDir);
-    const dist = muzzleWorld.distanceTo(playerPos);
-
-    // 隨距離與散佈判定命中率 (中近距離命中率約 30%~45%)
-    const hitChance = Math.max(0.15, 0.48 - dist * 0.01);
+    // 隨距離與散佈判定命中率 (中近距離命中率約 25%~40%)
+    const hitChance = Math.max(0.12, 0.42 - dist * 0.008);
     if (Math.random() < hitChance) {
       if (this.onShootPlayer) {
-        const damage = Math.round(12 + Math.random() * 10); // 單發 12~22 傷害
+        const damage = Math.round(10 + Math.random() * 10); // 單發 10~20 傷害
         this.onShootPlayer(this, damage);
       }
     }
