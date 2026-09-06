@@ -651,22 +651,22 @@ function createLimbBone(pA, pB, radiusA, radiusB, material, addJointCaps = true)
   const len = dir.length();
   if (len < 0.001) return group;
 
-  // 骨骼圓柱體段
-  const geom = new THREE.CylinderGeometry(radiusB, radiusA, len, 10);
+  // 骨骼圓柱體段 (12 段圓潤網格)
+  const geom = new THREE.CylinderGeometry(radiusB, radiusA, len, 12);
   const cyl = new THREE.Mesh(geom, material);
   cyl.castShadow = true;
   cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
   cyl.position.addVectors(pA, pB).multiplyScalar(0.5);
   group.add(cyl);
 
-  // 關節防穿幫球體 (消除關節轉角接縫，形成流暢圓潤人體關節)
+  // 關節防穿幫球體 (半徑放大 1.14 倍，徹底包裹圓柱兩端切面，消除任何生硬稜角與切面)
   if (addJointCaps) {
-    const jointA = new THREE.Mesh(new THREE.SphereGeometry(radiusA * 1.02, 8, 8), material);
+    const jointA = new THREE.Mesh(new THREE.SphereGeometry(radiusA * 1.14, 12, 10), material);
     jointA.position.copy(pA);
     jointA.castShadow = true;
     group.add(jointA);
 
-    const jointB = new THREE.Mesh(new THREE.SphereGeometry(radiusB * 1.02, 8, 8), material);
+    const jointB = new THREE.Mesh(new THREE.SphereGeometry(radiusB * 1.14, 12, 10), material);
     jointB.position.copy(pB);
     jointB.castShadow = true;
     group.add(jointB);
@@ -934,11 +934,28 @@ export class AIBot {
       this.upperBody.add(sideCuff);
     }
 
-    // 兩肩防彈護墊 (Shoulder Straps & Pads)
-    for (const sx of [-0.16, 0.16]) {
-      const shoulderPad = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.16), this.vestMat);
-      shoulderPad.position.set(sx, 0.19, 0);
+    // 兩肩解剖學戰術三角肌袖口與立體護肩 (Deltoid Shoulder Sockets - 天衣無縫銜接軀幹與手臂)
+    for (const sx of [-0.185, 0.185]) {
+      // 飽滿肌肉三角肌球窩 (包覆上臂骨骼頂部，天衣無縫銜接軀幹與手臂，徹底消滅生硬斷層)
+      const deltoidGeo = new THREE.SphereGeometry(0.068, 14, 12);
+      const deltoid = new THREE.Mesh(deltoidGeo, this.jacketMat);
+      deltoid.scale.set(0.92, 1.16, 1.05);
+      deltoid.position.set(sx, 0.16, 0);
+      deltoid.rotation.z = sx > 0 ? -0.15 : 0.15;
+      deltoid.castShadow = true;
+      this.upperBody.add(deltoid);
+
+      // 戰術防彈護肩與重裝肩帶 (順著肩峰微向外側下傾，營造厚重特戰輪廓)
+      const shoulderPad = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.048, 0.16), this.vestMat);
+      shoulderPad.position.set(sx * 0.95, 0.20, 0);
+      shoulderPad.rotation.z = sx > 0 ? -0.18 : 0.18;
+      shoulderPad.castShadow = true;
       this.upperBody.add(shoulderPad);
+
+      // 腋下與胸大肌外側銜接襯墊 (徹底消除手臂根部透光死角)
+      const armpitFiller = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.038, 0.14, 8), this.jacketMat);
+      armpitFiller.position.set(sx * 0.82, 0.10, 0);
+      this.upperBody.add(armpitFiller);
     }
 
     // 胸前三聯 AK-47 彈匣快拔包
@@ -1002,14 +1019,14 @@ export class AIBot {
     trapezius.rotation.x = 0.22;
     this.upperBody.add(trapezius);
 
-    // 戰術 Shemagh 圍巾厚實領圈 (緊密包覆脖子基底，100% 杜絕透光空隙)
-    const scarfCollar = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.034, 8, 16), this.scarfMat);
+    // 戰術 Shemagh 圍巾厚實領圈 (管徑加厚緊密包覆脖子與下巴，100% 杜絕任何透光空隙)
+    const scarfCollar = new THREE.Mesh(new THREE.TorusGeometry(0.086, 0.038, 10, 20), this.scarfMat);
     scarfCollar.rotation.x = Math.PI / 2;
-    scarfCollar.position.set(0, 0.21, 0.015);
+    scarfCollar.position.set(0, 0.205, 0.02);
     this.upperBody.add(scarfCollar);
 
     // 胸前圍巾立體結與自然垂墜布褶 (緊貼前胸 JPC 防彈鋼板頂部)
-    const scarfFold = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.11, 0.045), this.scarfMat);
+    const scarfFold = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.045), this.scarfMat);
     scarfFold.position.set(0, 0.15, 0.11);
     scarfFold.rotation.x = 0.15;
     this.upperBody.add(scarfFold);
@@ -1021,7 +1038,7 @@ export class AIBot {
   // ==========================================================
   buildHeadModule() {
     this.headGroup = new THREE.Group();
-    this.headGroup.position.set(0, 0.31, 0.02); // 關鍵修正：自 0.46 降至 0.31，下巴深入圍巾領口與頸部，徹底根除浮空斷頭！
+    this.headGroup.position.set(0, 0.28, 0.025); // 關鍵修正：下巴深陷圍巾領口與實心頸部，頭身無縫一體！
     this.upperBody.add(this.headGroup);
 
     // 特戰人體工學頭部 (高度精確縮減至 0.19m，徹底符合八頭身比例！)
@@ -1172,19 +1189,20 @@ export class AIBot {
     // (在 this.armsPivot 局部座標中，完全消滅抱胸)
 
     // 1. 右臂 (扣扳機主手)：
-    // 肩關節在右側鎖骨外端，手肘收在右肋外側下沉，前臂向前伸扣住握把
-    const pRightShoulder = new THREE.Vector3(0.20, 0.02, -0.02);
-    const pRightElbow = new THREE.Vector3(0.23, -0.18, 0.04);
+    // 肩關節精確錨定於右肩三角肌袖口球心 (0.185, 0, 0)，手肘在右肋外側下沉，前臂直伸扣住握把
+    const pRightShoulder = new THREE.Vector3(0.185, 0.00, 0.00);
+    const pRightElbow = new THREE.Vector3(0.225, -0.18, 0.04);
     const pRightWrist = new THREE.Vector3(0.14, -0.11, 0.12);
 
-    const rightUpperArm = createLimbBone(pRightShoulder, pRightElbow, 0.042, 0.036, this.jacketMat);
+    const rightUpperArm = createLimbBone(pRightShoulder, pRightElbow, 0.043, 0.037, this.jacketMat);
     this.armsPivot.add(rightUpperArm);
 
-    const rightForearm = createLimbBone(pRightElbow, pRightWrist, 0.036, 0.031, this.jacketMat);
+    const rightForearm = createLimbBone(pRightElbow, pRightWrist, 0.037, 0.032, this.jacketMat);
     this.armsPivot.add(rightForearm);
 
-    // 右手戰術護肘
-    const rightElbowPad = new THREE.Mesh(elbowPadGeo, this.padMat);
+    // 右手立體戰術曲面護肘 (完整服貼手肘轉折關節，消除切面突兀感)
+    const rightElbowPad = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 10), this.padMat);
+    rightElbowPad.scale.set(0.92, 1.15, 0.90);
     rightElbowPad.position.copy(pRightElbow);
     this.armsPivot.add(rightElbowPad);
 
@@ -1195,19 +1213,20 @@ export class AIBot {
     this.armsPivot.add(rightGlove);
 
     // 2. 左臂 (托護木副手)：
-    // 肩關節在左側鎖骨外端，手肘向前下方支撐展開，前臂向前上方斜伸托住護木下方
-    const pLeftShoulder = new THREE.Vector3(-0.20, 0.02, -0.02);
+    // 肩關節精確錨定於左肩三角肌袖口球心 (-0.185, 0, 0)，手肘向前下方支撐展開，前臂向前上方斜伸托住護木
+    const pLeftShoulder = new THREE.Vector3(-0.185, 0.00, 0.00);
     const pLeftElbow = new THREE.Vector3(-0.08, -0.14, 0.18);
     const pLeftWrist = new THREE.Vector3(0.14, -0.07, 0.38); // 位於護木下方 (Z=0.38，前後縱深相差 26cm！)
 
-    const leftUpperArm = createLimbBone(pLeftShoulder, pLeftElbow, 0.042, 0.036, this.jacketMat);
+    const leftUpperArm = createLimbBone(pLeftShoulder, pLeftElbow, 0.043, 0.037, this.jacketMat);
     this.armsPivot.add(leftUpperArm);
 
-    const leftForearm = createLimbBone(pLeftElbow, pLeftWrist, 0.036, 0.031, this.jacketMat);
+    const leftForearm = createLimbBone(pLeftElbow, pLeftWrist, 0.037, 0.032, this.jacketMat);
     this.armsPivot.add(leftForearm);
 
-    // 左手戰術護肘
-    const leftElbowPad = new THREE.Mesh(elbowPadGeo, this.padMat);
+    // 左手立體戰術曲面護肘
+    const leftElbowPad = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 10), this.padMat);
+    leftElbowPad.scale.set(0.92, 1.15, 0.90);
     leftElbowPad.position.copy(pLeftElbow);
     this.armsPivot.add(leftElbowPad);
 
