@@ -1,3 +1,5 @@
+import { Game } from './core/Game.js';
+
 // 全域錯誤捕獲器：若發生任何運行時錯誤，直接在畫面頂部以紅色醒目橫幅顯示，免去開 F12 控制台的麻煩
 function showGlobalError(msg) {
   let errBox = document.getElementById('global-error-banner');
