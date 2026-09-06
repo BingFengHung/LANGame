@@ -217,8 +217,10 @@ export class Game {
       }
     } else if (wallHit) {
       // 命中牆面：生成火星與彈孔
-      this.particleSystem.createImpactEffect(wallHit.point, wallHit.normal);
-      this.particleSystem.createTracer(tracerStart, wallHit.point);
+      const hitPt = wallHit.point || wallHit.position;
+      const hitNorm = wallHit.normal || new THREE.Vector3(0, 1, 0);
+      this.particleSystem.createImpactEffect(hitPt, hitNorm);
+      this.particleSystem.createTracer(tracerStart, hitPt);
     } else {
       // 未命中實體：射向遠方
       const farPoint = ray.origin.clone().addScaledVector(ray.direction, 80);
