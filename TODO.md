@@ -39,44 +39,47 @@
 
 ---
 
-## 🌐 Phase 4: 純區網 WebRTC 閉環連線與星狀同步
-- [ ] 實作 SDP 瘦身與 zlib 壓縮演算法 (`Signaling.js`，剔除影音行，壓縮為短字串/Base64)。
-- [ ] 實作光學配對 UI (`LobbyUI.js`，支援 QR Code 顯示/鏡頭掃描與一鍵複製房間碼)。
+## 🌐 Phase 4: 純區網 WebRTC 閉環連線與星狀同步 (當前核心開發階段)
+- [x] 定義網路通訊協議常數與資料結構 (`PacketTypes.js`，包含 INPUT, SNAPSHOT, SHOOT_REQ, HIT_EVENT 等)。
+- [ ] 實作 SDP 瘦身與 zlib 壓縮演算法 (`Signaling.js`，剔除影音行，壓縮為極簡短字串/Base64)。
+- [ ] 實作光學配對與房間碼介面 (`LobbyUI.js`，支援 QR Code 產生、相機掃描與一鍵剪貼簿交換)。
 - [ ] 實作房主端星狀連線管理器 (`HostPeer.js`，維護至多 3 條客端通道，強制 `iceServers: []`)。
-- [ ] 實作客端連線管理器 (`ClientPeer.js`，建立 Unreliable 與 Reliable 雙通道)。
+- [ ] 實作客端連線管理器 (`ClientPeer.js`，建立 Unreliable UDP 與 Reliable 雙通道)。
 - [ ] 實作 60Hz 網路資料同步循環：
-  - [ ] 客端上傳操作按鍵與視角 (`INPUT` 封包)。
-  - [ ] 房主權威推進所有人世界座標，廣播世界快照 (`SNAPSHOT` 封包)。
+  - [ ] 客端 60Hz 上傳操作按鍵與視角 (`INPUT` 封包)。
+  - [ ] 房主權威推進所有人世界物理座標，廣播世界快照 (`SNAPSHOT` 封包)。
   - [ ] 客端平滑內插渲染其他玩家之 3D 模型走動與轉向。
 
 ---
 
 ## 🎯 Phase 5: 房主權威射線命中判定與傷害系統
-- [ ] 玩家模型劃分 3 大 Hitbox 碰撞盒 (Head 4x 爆頭、Chest 1x 軀幹、Legs 0.75x 四肢)。
-- [ ] 實作射線命中系統 (`HitscanSystem.js`)：
-  - [ ] 客端發送開火請求 (`SHOOT_REQ`)。
-  - [ ] 房主權威端進行 Raycasting 求交判定，計算距離與命中部位。
-  - [ ] 扣除目標血量 (HP 100)，判定陣亡。
-- [ ] 廣播戰鬥事件 (`HIT_EVENT`)：
-  - [ ] 受擊回饋 (準星紅叉 Hitmarker、畫面邊緣受傷泛紅)。
-  - [ ] 右上角擊殺訊息推播 (`KillFeed.js`)。
-  - [ ] 陣亡視角切換與重生點倒數機制。
+- [x] 角色模型劃分 3 大 Hitbox 碰撞盒 (Head 4x 爆頭、Chest 1x 軀幹、Legs 0.75x 四肢)。
+- [x] 單人/Bot 權威射線命中判定系統 (Raycasting 求交、距離衰減、掩體阻擋與煙霧彈阻隔)。
+- [x] 戰鬥受擊反饋系統：
+  - [x] 準星紅叉打擊回饋 (Hitmarker) 與金屬爆頭音效 (Headshot Dink)。
+  - [x] 畫面邊緣受傷泛紅 (Damage Vignette) 與角色受擊物理硬直震顫 (Hit Flinch)。
+  - [x] 右上角即時擊殺推播 (`KillFeed.js`) 與浮動金錢獎勵 (+$300)。
+  - [x] 陣亡視角與回合倒數機制。
+- [ ] 整合多人連線射線命中廣播 (`SHOOT_REQ` 與 `HIT_EVENT` Reliable 封包)。
 
 ---
 
 ## 🔊 Phase 6: 3D 空間音效與戰鬥 HUD 介面
-- [ ] 實作 3D 空間音效管理器 (`AudioManager.js`)：
-  - [ ] Web Audio API HRTF 空間音場 (聽音辨位)。
-  - [ ] 腳步聲 (依移動速度觸發)、槍聲 (距離衰減)、換彈聲、爆頭金屬叮聲 (Headshot Dink)。
-- [ ] 完善戰鬥 HUD 介面 (`HUD.js`)：
-  - [ ] 生命值 (HP)、彈藥數 (Ammo / Reserve)。
-  - [ ] 左上角簡易雷達小地圖 (顯示隊友與敵人槍聲點位)。
-  - [ ] Tab 鍵對戰計分板 (`Scoreboard.js`，顯示擊殺/陣亡數與 Ping)。
-- [ ] 回合狀態機 (`StateMachine.js`，回合開始、對戰中、回合結束與勝負計分)。
+- [x] 實作程序化合成音效管理器 (`AudioManager.js`，零外部 MP3 下載，純 Web Audio API 合成)：
+  - [x] AK-47 / Deagle 開火重音爆破與金屬機件聲。
+  - [x] 依移動速度觸發之作戰靴腳步聲、換彈退夾上膛聲、爆頭清脆金屬聲。
+- [x] 完善戰鬥 HUD 介面 (`HUD.js`)：
+  - [x] 生命值 (HP)、護甲值 (Armor)、彈藥數 (Ammo / Reserve)。
+  - [x] DE_DUST2 區域雷達導航標籤 (CT SPAWN, BOMBSITE A/B, MID DOORS 等)。
+  - [x] 頂部比分板、4 名 Bot 存活頭像狀態與 01:55 電子回合倒數。
+  - [x] 閃光彈致盲全白覆蓋特效。
+- [ ] 多人對戰 Tab 鍵即時計分板 (`Scoreboard.js`，顯示各玩家擊殺/陣亡數與 Ping 延遲)。
+- [ ] 回合狀態機連線同步 (`StateMachine.js`，勝負條件與下一局重置)。
 
 ---
 
 ## 🚀 Phase 7: PWA 離線快取、效能調校與 GitHub Actions 發布
-- [ ] 配置 Service Worker (PWA)，快取所有靜態資源，實現外網中斷下純區網離線對戰。
+- [x] 設定 GitHub Actions 自動化 CI/CD 流程 (`.github/workflows/deploy.yml`)，推送即發布。
+- [x] 設定 Vite 二級相對路徑 (`base: './'`) 與快取更新破壞機制 (Cache Busting)。
+- [ ] 配置 Service Worker (PWA)，支援在無網環境下離線快取遊玩。
 - [ ] 效能 Profile 與 Low-Poly 渲染最佳化，確保全平台穩定 60+ FPS。
-- [ ] 推送程式碼觸發 GitHub Actions，驗證 GitHub Pages 正式發布與線上體驗。
