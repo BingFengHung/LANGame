@@ -720,6 +720,8 @@ export class AIBot {
     this.baseTorsoY = 1.10;
     this.recoilKick = 0;       // 開火射擊後座力微揚
     this.currentYaw = 0;       // 平滑轉向 Yaw
+    this.currentPitch = 0;     // 上下瞄準俯仰角 (Pitch Aim - 徹底解決高低差射擊未對準問題)
+    this.targetPitch = 0;      // 目標俯仰角
     this.bankTilt = 0;         // 奔跑變向側身傾角
     this.isMoving = false;
 
@@ -1236,12 +1238,17 @@ export class AIBot {
     leftGlove.rotation.set(-0.15, -0.22, 0.25);
     this.armsPivot.add(leftGlove);
 
-    // 槍火光 (星形十字 - 位於槍口正前方)
-    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true });
-    this.flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), flashMat);
-    this.flashMesh.position.set(0.14, 1.25, 0.85);
+    // 槍口火花 (雙面立體十字交錯星芒 - 直接錨定在步槍槍口前端，精確隨槍管俯仰)
+    this.flashMesh = new THREE.Group();
+    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.95 });
+    const flashPlane1 = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), flashMat);
+    const flashPlane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), flashMat);
+    flashPlane2.rotation.z = Math.PI / 2;
+    this.flashMesh.add(flashPlane1);
+    this.flashMesh.add(flashPlane2);
+    this.flashMesh.position.set(0, 0.014, 0.65);
     this.flashMesh.visible = false;
-    this.group.add(this.flashMesh);
+    this.weaponGroup.add(this.flashMesh);
   }
 
   createUI() {
@@ -1383,6 +1390,8 @@ export class AIBot {
     this.isCrouching = false;
     this.flinchAmount = 0;
     this.recoilKick = 0;
+    this.currentPitch = 0;
+    this.targetPitch = 0;
     this.walkAnimTimer = 0;
 
     if (this.upperBody) {
@@ -1392,6 +1401,9 @@ export class AIBot {
     if (this.armsPivot) {
       this.armsPivot.position.set(0, 0.16, 0);
       this.armsPivot.rotation.set(0, 0, 0);
+    }
+    if (this.headGroup) {
+      this.headGroup.rotation.set(0, 0, 0);
     }
     this.resetLegs(1.0);
 
@@ -1463,12 +1475,30 @@ export class AIBot {
       this.recoilKick += (0 - this.recoilKick) * Math.min(delta * 18, 1);
     }
 
-    // 6. 整合受擊與後座力至上半身
+    // 6. 整合 3D 瞄準俯仰角 (Pitch Aim)、受擊硬直與後座力微衝擊
+    this.currentPitch += (this.targetPitch - this.currentPitch) * Math.min(delta * 14, 1);
+
+    // 上半身 (脊椎) 承擔 45% 的俯仰傾角
     if (this.upperBody) {
-      this.upperBody.rotation.x = -this.flinchAmount + this.recoilKick * 0.22;
+      this.upperBody.rotation.x = (this.currentPitch * 0.45) - this.flinchAmount + this.recoilKick * 0.20;
     }
+    // 手臂支架 (槍枝持握主軸) 承擔 42% 的精準俯仰瞄準，槍口完全筆直鎖定玩家
     if (this.armsPivot) {
+      this.armsPivot.rotation.x = this.currentPitch * 0.42;
       this.armsPivot.position.z = -this.recoilKick * 0.12;
+    }
+    // 頭部視線承擔 15% 的俯仰，頭盔風鏡與雙眼精準凝視目標
+    if (this.headGroup) {
+      this.headGroup.rotation.x = this.currentPitch * 0.15;
+    }
+
+    // 待機微呼吸戰術起伏 (Tactical Idle Breathing & Weapon Sway - 賦予角色鮮活生命力)
+    const idleSway = Math.sin(now * 2.4) * 0.006;
+    if (this.upperBody && !this.isMoving) {
+      this.upperBody.position.y += idleSway * 0.25;
+    }
+    if (this.armsPivot && !this.isMoving) {
+      this.armsPivot.position.y = 0.16 + idleSway * 0.35;
     }
 
     // 7. 蹲下壓槍平滑過渡 (Crouch Smoothing)
@@ -1565,8 +1595,19 @@ export class AIBot {
    * 戰鬥行為模式：平滑瞄準轉向、雙向急停橫移、下蹲壓槍與開火後座力
    */
   updateCombat(delta, playerPos, distToPlayer, now) {
-    // 1. 平滑轉向玩家 (Smooth Look Rotation with Slerp)
+    // 1. 平滑全 3D 瞄準鎖定玩家 (Full 3D Look Rotation with Yaw & Vertical Pitch)
     const toPlayer = playerPos.clone().sub(this.group.position);
+    const horizDist = Math.hypot(toPlayer.x, toPlayer.z);
+
+    // 精確計算目標高度差與 3D 俯仰角度
+    // 當玩家在下方 (例如 Bot 位於高台)：deltaY < 0，pitch > 0 (上半身與槍口向下壓低瞄準)
+    // 當玩家在上方：deltaY > 0，pitch < 0 (上半身與槍口向上抬起瞄準)
+    const targetY = playerPos.y + 1.1; // 玩家胸口/瞄準中心
+    const botMuzzleY = this.group.position.y + (this.isCrouching ? 0.88 : 1.28);
+    const deltaY = targetY - botMuzzleY;
+    const rawPitch = Math.atan2(-deltaY, Math.max(0.6, horizDist));
+    this.targetPitch = Math.max(-0.95, Math.min(0.95, rawPitch)); // 限制人體俯仰極限約 ±55 度
+
     toPlayer.y = 0;
     if (toPlayer.lengthSq() > 0.001) {
       const targetYaw = Math.atan2(toPlayer.x, toPlayer.z);
@@ -1623,18 +1664,23 @@ export class AIBot {
    * 射擊開火：點亮槍火、施加後座力微衝擊、發射曳光線與傷害判定
    */
   shootAtPlayer(playerPos, now) {
-    this.flashMesh.visible = true;
+    if (this.flashMesh) {
+      this.flashMesh.visible = true;
+      this.flashMesh.rotation.z = Math.random() * Math.PI;
+    }
     this.flashOffTime = now + 0.05;
 
     // 觸發人體開火後座力微揚 (Recoil Impulse)
     this.recoilKick = 0.16;
 
-    // 計算槍口在世界空間座標
+    // 計算槍口在世界空間座標 (精確結合 weaponGroup 完整世界旋轉，槍身俯仰角度 100% 精確同步)
     const muzzleWorld = new THREE.Vector3();
+    const gunQuat = new THREE.Quaternion();
     if (this.weaponGroup) {
       this.weaponGroup.getWorldPosition(muzzleWorld);
-      const fwd = new THREE.Vector3(0, 0, 0.65).applyQuaternion(this.group.quaternion);
-      muzzleWorld.add(fwd);
+      this.weaponGroup.getWorldQuaternion(gunQuat);
+      const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(gunQuat);
+      muzzleWorld.addScaledVector(fwd, 0.65);
     } else {
       muzzleWorld.copy(this.group.position).add(new THREE.Vector3(0, 1.25, 0.5));
     }
@@ -1679,6 +1725,7 @@ export class AIBot {
    * 巡邏模式：平滑移動與自然行走擺臂
    */
   updatePatrol(delta, now) {
+    this.targetPitch = 0;
     const toWaypoint = this.currentWaypoint.clone().sub(this.group.position);
     toWaypoint.y = 0;
     const dist = toWaypoint.length();
@@ -1713,6 +1760,7 @@ export class AIBot {
    * 徹底告別直挺挺木偶直線擺動，還原真實跑步膝關節折疊與身體起伏
    */
   animateLocomotion(delta, speed, isStrafe = false) {
+    this.isMoving = true;
     this.walkAnimTimer += delta * Math.max(speed, 1.2) * 3.8;
 
     // 1. 大腿前後擺動 (Thigh Forward/Backward Swing)
@@ -1749,6 +1797,7 @@ export class AIBot {
    * 平滑恢復站立或蹲姿 (Smooth Transition to Natural Combat Ready Idle)
    */
   resetLegs(delta = 0.016) {
+    this.isMoving = false;
     const smooth = Math.min(delta * 12, 1);
     this.leftLegPivot.rotation.x += (0.04 - this.leftLegPivot.rotation.x) * smooth;
     this.rightLegPivot.rotation.x += (0.04 - this.rightLegPivot.rotation.x) * smooth;
@@ -1759,7 +1808,7 @@ export class AIBot {
       this.upperBody.rotation.y += (0 - this.upperBody.rotation.y) * smooth;
     }
     if (this.armsPivot) {
-      this.armsPivot.position.set(0, 0.16, 0.04);
+      this.armsPivot.position.set(0, 0.16, 0.0);
     }
     this.group.rotation.z += (0 - this.group.rotation.z) * smooth;
   }
