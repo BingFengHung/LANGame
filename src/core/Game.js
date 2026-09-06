@@ -394,10 +394,10 @@ export class Game {
       this.grenadeSystem.update(delta, this.player, this.bots, this.hud);
     }
 
-    // 更新電腦戰鬥機器人 (巡邏、開火射擊、走位與重生)
+    // 更新電腦戰鬥機器人 (巡邏、開火射擊、走位、煙霧彈阻隔判定與重生)
     const playerPos = this.player.getPosition();
     for (const bot of this.bots) {
-      bot.update(delta, playerPos, !this.player.isDead);
+      bot.update(delta, playerPos, !this.player.isDead, this.grenadeSystem);
     }
 
     // 同步持槍相機旋轉

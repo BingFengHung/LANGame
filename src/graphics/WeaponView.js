@@ -42,6 +42,7 @@ export class WeaponView {
     this.weaponModels['knife'] = this.buildKnife();
     this.weaponModels['he_grenade'] = this.buildHEGrenade();
     this.weaponModels['flashbang'] = this.buildFlashbang();
+    this.weaponModels['smoke_grenade'] = this.buildSmokeGrenade();
 
     // 先全部隱藏
     for (const key in this.weaponModels) {
@@ -229,6 +230,40 @@ export class WeaponView {
     return group;
   }
 
+  buildSmokeGrenade() {
+    const group = new THREE.Group();
+    const canMat = new THREE.MeshStandardMaterial({ color: 0x4a5d4e, roughness: 0.5 }); // 經典灰綠色金屬罐身
+    const whiteBandMat = new THREE.MeshStandardMaterial({ color: 0xf7fafc, roughness: 0.3 }); // 標識白環
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb5903b, roughness: 0.35, metalness: 0.85 });
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.95 });
+
+    // 圓筒罐身
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.135, 12), canMat);
+    group.add(body);
+
+    // 兩道經典白色識別漆環 (White Bands)
+    const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.0365, 0.0365, 0.016, 12), whiteBandMat);
+    band1.position.y = 0.03;
+    group.add(band1);
+
+    const band2 = new THREE.Mesh(new THREE.CylinderGeometry(0.0365, 0.0365, 0.016, 12), whiteBandMat);
+    band2.position.y = -0.03;
+    group.add(band2);
+
+    // 保險把柄與拉環
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.085, 0.01), brassMat);
+    lever.position.set(0.024, 0.03, 0);
+    group.add(lever);
+
+    const pullRing = new THREE.Mesh(new THREE.TorusGeometry(0.011, 0.0025, 6, 12), pinMat);
+    pullRing.position.set(-0.02, 0.075, 0);
+    pullRing.rotation.y = Math.PI / 2;
+    group.add(pullRing);
+
+    group.rotation.set(-0.2, 0.1, 0.1);
+    return group;
+  }
+
   initMuzzleFlash() {
     this.flashGroup = new THREE.Group();
 
@@ -285,8 +320,9 @@ export class WeaponView {
     this.kickOffset.z = 0.045 * (recoilAmount / 0.02);
     this.kickRotation.x = 0.09 * (recoilAmount / 0.02);
 
-    // 顯示槍口火花
-    if (this.currentWeaponId !== 'knife' && this.currentWeaponId !== 'he_grenade' && this.currentWeaponId !== 'flashbang') {
+    // 顯示槍口火花 (排除小刀與各類投擲物)
+    const isGrenadeOrMelee = ['knife', 'he_grenade', 'flashbang', 'smoke_grenade'].includes(this.currentWeaponId);
+    if (!isGrenadeOrMelee) {
       this.flashGroup.visible = true;
       this.flashGroup.rotation.z = Math.random() * Math.PI * 2;
       this.flashTimer = 0.045; // 45ms

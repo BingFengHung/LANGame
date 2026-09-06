@@ -252,15 +252,15 @@ export class AudioManager {
     // 1. 爆裂聲
     this.playNoiseBlast(0.18, 3200, 0.85);
 
-    // 2. 經典 CS 4000Hz 銳利持續耳鳴聲 (Tinnitus Ringing)
+    // 2. 經典 CS 4000Hz 銳利持續耳鳴聲 (Tinnitus Ringing - 延長至 5.0 秒震撼體感)
     if (intensity > 0.2) {
       const ringOsc = ctx.createOscillator();
       const ringGain = ctx.createGain();
       ringOsc.type = 'sine';
       ringOsc.frequency.setValueAtTime(4100, t);
 
-      const duration = 2.8 * intensity;
-      ringGain.gain.setValueAtTime(0.35 * intensity, t + 0.05);
+      const duration = 5.2 * intensity;
+      ringGain.gain.setValueAtTime(0.38 * intensity, t + 0.05);
       ringGain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
 
       ringOsc.connect(ringGain);
@@ -269,5 +269,44 @@ export class AudioManager {
       ringOsc.start(t);
       ringOsc.stop(t + duration + 0.1);
     }
+  }
+
+  /**
+   * 播放煙霧彈噴發持續嘶嘶聲 (Smoke Hissing)
+   */
+  playSmokeHiss(duration = 14) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    // 建立 4 秒連續高壓氣流噴發音
+    const soundLen = Math.min(duration, 8);
+    const bufferSize = Math.floor(ctx.sampleRate * soundLen);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400, t);
+    filter.Q.value = 1.2;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.linearRampToValueAtTime(0.4, t + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + soundLen);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(t);
   }
 }

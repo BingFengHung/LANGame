@@ -29,13 +29,8 @@ export class AIBot {
     this.nextFireTime = 0;
     this.nextBurstTime = 0;
 
-    // 戰鬥開火參數
-    this.fireRate = 0.16; // 連射間隔
-    this.burstCount = 0;
-    this.burstMax = 3;
-    this.burstCooldown = 1.0;
-    this.nextFireTime = 0;
-    this.nextBurstTime = 0;
+    // 受傷硬直物理震顫 (Hit Flinch)
+    this.flinchAmount = 0;
 
     // 蹲姿壓槍狀態 (CS 經典 Crouch Spray)
     this.isCrouching = false;
@@ -63,14 +58,16 @@ export class AIBot {
   buildModel() {
     // 經典 CS 恐怖分子外觀材質 (鳳凰戰士 Phoenix Connexion 風格)
     this.jacketMat = new THREE.MeshStandardMaterial({ color: 0x823b1c, roughness: 0.7 }); // 深棕紅戰鬥服
-    this.vestMat = new THREE.MeshStandardMaterial({ color: 0x2d3748, roughness: 0.8, metalness: 0.2 }); // 重裝戰術防彈背心
-    this.pouchMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.9 }); // 彈匣戰術袋
-    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x333b48, roughness: 0.85 }); // 戰術長褲
-    this.skinMat = new THREE.MeshStandardMaterial({ color: 0x2b2d31, roughness: 0.9 }); // 深灰色頭套面罩 (Balaclava)
-    this.goggleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 }); // 護目鏡
+    this.vestMat = new THREE.MeshStandardMaterial({ color: 0x242d38, roughness: 0.8, metalness: 0.25 }); // 重裝戰術防彈背心
+    this.pouchMat = new THREE.MeshStandardMaterial({ color: 0x171c24, roughness: 0.9 }); // 彈匣戰術袋
+    this.beltMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.95 }); // 戰術勤務腰帶
+    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x2e3540, roughness: 0.85 }); // 戰術長褲
+    this.skinMat = new THREE.MeshStandardMaterial({ color: 0x232529, roughness: 0.9 }); // 深灰色頭套面罩 (Balaclava)
+    this.goggleMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.1, metalness: 0.95 }); // 黑色防風護目鏡
     this.gunMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.35, metalness: 0.8 }); // 金屬槍身
     this.woodMat = new THREE.MeshStandardMaterial({ color: 0x6e3819, roughness: 0.6 }); // 木質槍托與護木
-    this.bootMat = new THREE.MeshStandardMaterial({ color: 0x171923, roughness: 0.9 }); // 軍靴
+    this.bootMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.9 }); // 重裝軍靴
+    this.filterMat = new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.4, metalness: 0.6 }); // 金屬濾氣閥
 
     // 1. 軀幹與防彈背心 (Torso & Armor Vest)
     this.upperBody = new THREE.Group();
@@ -91,6 +88,16 @@ export class AIBot {
     vest.castShadow = true;
     this.upperBody.add(vest);
 
+    // 戰術防護肩墊 (Shoulder Armor Pads)
+    const shoulderGeo = new THREE.BoxGeometry(0.14, 0.1, 0.2);
+    const leftShoulder = new THREE.Mesh(shoulderGeo, this.vestMat);
+    leftShoulder.position.set(-0.25, 0.28, 0);
+    this.upperBody.add(leftShoulder);
+
+    const rightShoulder = new THREE.Mesh(shoulderGeo, this.vestMat);
+    rightShoulder.position.set(0.25, 0.28, 0);
+    this.upperBody.add(rightShoulder);
+
     // 胸前三聯彈匣戰術袋 (Ammo Pouches)
     for (let p = -1; p <= 1; p++) {
       const pouchGeo = new THREE.BoxGeometry(0.09, 0.16, 0.06);
@@ -99,7 +106,30 @@ export class AIBot {
       this.upperBody.add(pouch);
     }
 
-    // 2. 頭部與面罩護目鏡 (Head with Balaclava & Goggles)
+    // 胸前戰術對講機與天線 (Tactical Radio)
+    const radioGeo = new THREE.BoxGeometry(0.06, 0.12, 0.05);
+    const radio = new THREE.Mesh(radioGeo, this.pouchMat);
+    radio.position.set(-0.16, 0.18, 0.17);
+    this.upperBody.add(radio);
+
+    const antennaGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.14, 4);
+    const antenna = new THREE.Mesh(antennaGeo, this.gunMat);
+    antenna.position.set(-0.16, 0.31, 0.17);
+    this.upperBody.add(antenna);
+
+    // 戰術重型勤務腰帶 (Tactical Duty Belt)
+    const beltGeo = new THREE.BoxGeometry(0.5, 0.08, 0.3);
+    const belt = new THREE.Mesh(beltGeo, this.beltMat);
+    belt.position.set(0, -0.3, 0);
+    this.upperBody.add(belt);
+
+    // 腰側手槍快拔槍套 (Sidearm Holster)
+    const holsterGeo = new THREE.BoxGeometry(0.08, 0.18, 0.1);
+    const holster = new THREE.Mesh(holsterGeo, this.beltMat);
+    holster.position.set(0.26, -0.32, 0.02);
+    this.upperBody.add(holster);
+
+    // 2. 頭部與面罩護目鏡 (Head with Balaclava & Goggles & Filter)
     const headGeo = new THREE.BoxGeometry(0.24, 0.26, 0.24);
     this.headMesh = new THREE.Mesh(headGeo, this.skinMat);
     this.headMesh.position.set(0, 0.46, 0);
@@ -108,11 +138,25 @@ export class AIBot {
     this.upperBody.add(this.headMesh);
     this.hitboxes.push(this.headMesh);
 
-    // 戰術反光護目鏡
+    // 突出立體呼吸閥 (Respirator / Mask Filter)
+    const filterGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.04, 8);
+    const filterMesh = new THREE.Mesh(filterGeo, this.filterMat);
+    filterMesh.rotation.x = Math.PI / 2;
+    filterMesh.position.set(0, 0.38, 0.14);
+    this.upperBody.add(filterMesh);
+
+    // 戰術反光護目鏡 (Tactical Goggles)
     const goggleGeo = new THREE.BoxGeometry(0.25, 0.08, 0.1);
     const goggle = new THREE.Mesh(goggleGeo, this.goggleMat);
     goggle.position.set(0, 0.48, 0.09);
     this.upperBody.add(goggle);
+
+    // 單耳戰術通訊耳麥 (Tactical Headset)
+    const earCupGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.03, 8);
+    const earCup = new THREE.Mesh(earCupGeo, this.pouchMat);
+    earCup.rotation.z = Math.PI / 2;
+    earCup.position.set(-0.13, 0.46, 0);
+    this.upperBody.add(earCup);
 
     // 3. 雙腿與戰術靴、護膝 (Legs with Kneepads & Boots)
     const legGeo = new THREE.BoxGeometry(0.18, 0.74, 0.2);
@@ -296,8 +340,9 @@ export class AIBot {
     this.hp = Math.max(0, this.hp - actualDamage);
     this.renderUI();
 
-    // 受傷泛紅
+    // 受傷泛紅與物理硬直後仰震顫 (Flinch)
     this.flashRed();
+    this.flinchAmount = Math.min(0.35, this.flinchAmount + 0.2);
 
     // 死亡判定
     if (this.hp <= 0) {
@@ -316,23 +361,23 @@ export class AIBot {
     if (this.jacketMat) this.jacketMat.color.setHex(0xff2222);
     if (this.skinMat) this.skinMat.color.setHex(0xff0000);
     setTimeout(() => {
-      if (this.jacketMat) this.jacketMat.color.setHex(0x9c4221);
-      if (this.skinMat) this.skinMat.color.setHex(0xd69e2e);
+      if (this.jacketMat) this.jacketMat.color.setHex(0x823b1c);
+      if (this.skinMat) this.skinMat.color.setHex(0x232529);
     }, 120);
   }
 
   /**
-   * 遭受閃光彈致盲
+   * 遭受閃光彈致盲 (延長至 5.5 秒，高度還原 CS 逼真致盲體驗)
    */
-  applyFlash(duration = 3.5) {
+  applyFlash(duration = 5.5) {
     if (this.isDead) return;
     this.isFlashed = true;
     this.flashTimer = Math.max(this.flashTimer, duration);
 
-    // 舉手遮眼恐慌姿勢 (Cover eyes)
+    // 雙手高舉遮眼恐慌姿勢 (Cover eyes panic pose)
     if (this.armsPivot) {
-      this.armsPivot.rotation.x = 0.8;
-      this.armsPivot.rotation.z = -0.4;
+      this.armsPivot.rotation.x = 1.0;
+      this.armsPivot.rotation.z = -0.5;
     }
   }
 
@@ -342,10 +387,14 @@ export class AIBot {
     this.isFlashed = false;
     this.flashTimer = 0;
     this.isCrouching = false;
+    this.flinchAmount = 0;
 
     // 倒地姿勢 (自然向後倒臥於地面)
     this.group.rotation.x = -Math.PI / 2;
-    if (this.upperBody) this.upperBody.position.y = 0.3;
+    if (this.upperBody) {
+      this.upperBody.position.y = 0.25;
+      this.upperBody.rotation.x = 0;
+    }
     this.uiSprite.visible = false;
     this.flashMesh.visible = false;
     this.resetLegs();
@@ -361,7 +410,11 @@ export class AIBot {
     this.isFlashed = false;
     this.flashTimer = 0;
     this.isCrouching = false;
-    if (this.upperBody) this.upperBody.position.y = 1.15;
+    this.flinchAmount = 0;
+    if (this.upperBody) {
+      this.upperBody.position.y = 1.15;
+      this.upperBody.rotation.x = 0;
+    }
     if (this.armsPivot) {
       this.armsPivot.rotation.set(0, 0, 0);
     }
@@ -372,7 +425,7 @@ export class AIBot {
     this.currentWaypoint = this.getRandomWaypoint();
   }
 
-  update(delta, playerPos, isPlayerAlive = true) {
+  update(delta, playerPos, isPlayerAlive = true, grenadeSystem = null) {
     if (this.isDead) {
       this.respawnTimer -= delta;
       if (this.respawnTimer <= 0) {
@@ -383,7 +436,7 @@ export class AIBot {
 
     const now = performance.now() * 0.001;
 
-    // 1. 每幀進行地形與重力貼地檢測 (杜絕浮空與踩空問題)
+    // 1. 每幀進行地形與重力貼地檢測 (超堅固防禦，杜絕浮空與 undefined 崩潰)
     this.snapToGround(delta);
 
     // 2. 熄滅槍火
@@ -403,22 +456,30 @@ export class AIBot {
       } else {
         // 致盲慌亂狀態：手臂擋光、原地無助盲晃、不追蹤玩家
         this.resetLegs();
-        this.group.rotation.y += Math.sin(now * 6) * delta * 1.2;
+        this.group.rotation.y += Math.sin(now * 6) * delta * 1.5;
         return;
       }
     }
 
-    // 4. 蹲下壓槍平滑過渡 (Crouch Smoothing)
+    // 4. 受傷硬直後仰平滑回彈 (Hit Flinch Smoothing)
+    if (this.flinchAmount > 0) {
+      this.flinchAmount = Math.max(0, this.flinchAmount - delta * 3.5);
+    }
+    if (this.upperBody) {
+      this.upperBody.rotation.x = -this.flinchAmount;
+    }
+
+    // 5. 蹲下壓槍平滑過渡 (Crouch Smoothing)
     const targetUpperY = this.isCrouching ? 0.85 : 1.15;
     if (this.upperBody) {
       this.upperBody.position.y += (targetUpperY - this.upperBody.position.y) * Math.min(delta * 12, 1);
     }
 
-    // 5. 計算與玩家之距離與視線遮擋
+    // 6. 計算與玩家之距離與視線遮擋 (含實體掩體與煙霧彈阻隔)
     const distToPlayer = this.group.position.distanceTo(playerPos);
-    const canSeePlayer = isPlayerAlive && distToPlayer < 40 && this.hasLineOfSight(playerPos);
+    const canSeePlayer = isPlayerAlive && distToPlayer < 40 && this.hasLineOfSight(playerPos, grenadeSystem);
 
-    // AI 狀態機轉換 (必須存活、距離 40m 內且視線無障礙物遮擋才進入 COMBAT)
+    // AI 狀態機轉換 (必須存活、距離 40m 內且視線無障礙物/無煙霧遮擋才進入 COMBAT)
     if (canSeePlayer) {
       this.state = 'COMBAT';
     } else {
@@ -434,11 +495,9 @@ export class AIBot {
   }
 
   /**
-   * 檢查 Bot 是否能直接看見玩家 (避免穿牆偵測與隔牆開火)
+   * 檢查 Bot 是否能直接看見玩家 (避免穿牆偵測與穿透煙霧彈)
    */
-  hasLineOfSight(playerPos) {
-    if (!this.worldCollision) return true;
-
+  hasLineOfSight(playerPos, grenadeSystem = null) {
     const eyePos = this.group.position.clone().add(new THREE.Vector3(0, 1.5, 0));
     const targetPos = playerPos.clone().add(new THREE.Vector3(0, 1.2, 0));
     const dir = targetPos.clone().sub(eyePos);
@@ -446,11 +505,22 @@ export class AIBot {
     if (dist < 0.2) return true;
     dir.normalize();
 
-    const ray = new THREE.Ray(eyePos, dir);
-    const hit = this.worldCollision.rayIntersect(ray);
-    if (hit && hit.distance < dist - 0.4) {
-      return false; // 被掩體或牆壁遮擋
+    // 1. 檢查煙霧彈阻隔 (Smoke Block)
+    if (grenadeSystem && typeof grenadeSystem.isLineBlockedBySmoke === 'function') {
+      if (grenadeSystem.isLineBlockedBySmoke(eyePos, targetPos)) {
+        return false; // 視線被濃密煙霧彈阻隔！
+      }
     }
+
+    // 2. 檢查實體牆面與掩體
+    if (this.worldCollision) {
+      const ray = new THREE.Ray(eyePos, dir);
+      const hit = this.worldCollision.rayIntersect(ray);
+      if (hit && hit.distance < dist - 0.4) {
+        return false; // 被掩體或牆壁遮擋
+      }
+    }
+
     return true;
   }
 
@@ -458,27 +528,38 @@ export class AIBot {
    * 透過八叉樹 (Octree) 進行垂直地面求交，確保 Bot 雙腳永遠緊貼地面、斜坡與平台
    */
   snapToGround(delta) {
-    if (!this.worldCollision) return;
+    if (!this.worldCollision || !this.group || !this.group.position) return;
 
-    // 從 Bot 當前 XZ 上方 30m 垂直向下發射射線
-    const downRay = new THREE.Ray(
-      new THREE.Vector3(this.group.position.x, 30, this.group.position.z),
-      new THREE.Vector3(0, -1, 0)
-    );
-    const hit = this.worldCollision.rayIntersect(downRay);
+    try {
+      // 從 Bot 當前 XZ 上方 30m 垂直向下發射射線
+      const downRay = new THREE.Ray(
+        new THREE.Vector3(this.group.position.x, 30, this.group.position.z),
+        new THREE.Vector3(0, -1, 0)
+      );
+      const hit = this.worldCollision.rayIntersect(downRay);
 
-    if (hit) {
-      const pos = hit.point || hit.position;
-      if (pos && typeof pos.y === 'number') {
-        const targetY = pos.y;
-        if (this.group.position.y > targetY) {
-          // 重力下墜 (每秒 20m 墜地)
-          this.group.position.y = Math.max(targetY, this.group.position.y - 20.0 * delta);
-        } else {
-          // 上階梯或上坡立即抬升
-          this.group.position.y = targetY;
+      if (hit) {
+        let hitY = null;
+        if (hit.point && typeof hit.point.y === 'number') {
+          hitY = hit.point.y;
+        } else if (hit.position && typeof hit.position.y === 'number') {
+          hitY = hit.position.y;
+        } else if (typeof hit.distance === 'number') {
+          hitY = 30 - hit.distance;
+        }
+
+        if (typeof hitY === 'number' && !isNaN(hitY)) {
+          if (this.group.position.y > hitY) {
+            // 重力下墜 (每秒 20m 墜地)
+            this.group.position.y = Math.max(hitY, this.group.position.y - 20.0 * delta);
+          } else {
+            // 上階梯或上坡立即抬升
+            this.group.position.y = hitY;
+          }
         }
       }
+    } catch (err) {
+      // 靜默容錯，杜絕 Uncaught TypeError 崩潰
     }
   }
 

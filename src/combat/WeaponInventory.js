@@ -8,13 +8,14 @@ export class WeaponInventory {
     this.onWeaponChangeCallback = options.onWeaponChange || null;
     this.onAmmoChangeCallback = options.onAmmoChange || null;
 
-    // 建立經典 5 把裝備槽位 (主武、副武、小刀、高爆手榴彈、閃光彈)
+    // 建立經典 6 把裝備槽位 (主武、副武、小刀、高爆手榴彈、閃光彈、煙霧彈)
     this.slots = {
       1: new Weapon(WEAPON_CONFIGS.AK47),
       2: new Weapon(WEAPON_CONFIGS.DEAGLE),
       3: new Weapon(WEAPON_CONFIGS.KNIFE),
       4: new Weapon(WEAPON_CONFIGS.HE_GRENADE),
-      5: new Weapon(WEAPON_CONFIGS.FLASHBANG)
+      5: new Weapon(WEAPON_CONFIGS.FLASHBANG),
+      6: new Weapon(WEAPON_CONFIGS.SMOKE_GRENADE)
     };
 
     this.currentSlot = 1;
@@ -28,13 +29,14 @@ export class WeaponInventory {
   }
 
   initInputListeners() {
-    // 數字鍵 1, 2, 3, 4, 5 切換武器與投擲物
+    // 數字鍵 1, 2, 3, 4, 5, 6 切換武器與投擲物
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Digit1') this.switchSlot(1);
       if (e.code === 'Digit2') this.switchSlot(2);
       if (e.code === 'Digit3') this.switchSlot(3);
       if (e.code === 'Digit4') this.switchSlot(4);
       if (e.code === 'Digit5') this.switchSlot(5);
+      if (e.code === 'Digit6') this.switchSlot(6);
       if (e.code === 'KeyR') this.reload();
     });
 
@@ -43,16 +45,16 @@ export class WeaponInventory {
       e.preventDefault();
     });
 
-    // 滑鼠滾輪切換武器 (1 ~ 5 槽循環)
+    // 滑鼠滾輪切換武器 (1 ~ 6 槽循環)
     window.addEventListener('wheel', (e) => {
       if (!document.pointerLockElement) return;
       if (e.deltaY > 0) {
         let next = this.currentSlot + 1;
-        if (next > 5) next = 1;
+        if (next > 6) next = 1;
         this.switchSlot(next);
       } else if (e.deltaY < 0) {
         let prev = this.currentSlot - 1;
-        if (prev < 1) prev = 5;
+        if (prev < 1) prev = 6;
         this.switchSlot(prev);
       }
     });

@@ -91,14 +91,14 @@ export class HUD {
           <div><b style="color: #63b3ed;">[左鍵]</b> 開火 / 揮刀 / 投擲</div>
           <div><b style="color: #63b3ed;">[1 / 2 / 3]</b> 步槍 / 手槍 / 小刀</div>
           <div><b style="color: #63b3ed;">[右鍵]</b> 小刀重刺 (背刺致命)</div>
-          <div><b style="color: #63b3ed;">[4 / 5]</b> 高爆手榴彈 / 閃光彈</div>
+          <div><b style="color: #63b3ed;">[4 / 5 / 6]</b> 手榴彈 / 閃光彈 / 煙霧彈</div>
           <div><b style="color: #63b3ed;">[空白鍵 Space]</b> 跳躍</div>
           <div><b style="color: #63b3ed;">[Shift]</b> 慢走 / <b style="color: #63b3ed;">[Ctrl/C]</b> 蹲下壓槍</div>
           <div><b style="color: #63b3ed;">[R]</b> 裝填彈匣 / <b style="color: #63b3ed;">[ESC]</b> 暫停</div>
         </div>
 
         <div style="margin-top: 14px; font-size: 0.82rem; color: #48bb78; font-weight: bold; letter-spacing: 0.5px;">
-          ✓ 最新版本 v0.3.0 • 戰術投擲物、真實近戰小刀與 CS 擬真敵軍壓槍對抗已就緒
+          ✓ 最新版本 v0.3.5 • 戰術煙霧彈封煙、5.5s長效致盲、近戰背刺與擬真恐怖分子已就緒
         </div>
       </div>
     `;
@@ -221,6 +221,24 @@ export class HUD {
       transition: opacity 0.05s ease;
     `;
     this.hudWrap.appendChild(this.flashOverlay);
+
+    // 身處煙霧彈內部全螢幕濃煙罩層 (Inside Smoke Overlay)
+    this.smokeOverlay = document.createElement('div');
+    this.smokeOverlay.id = 'hud-smoke-overlay';
+    this.smokeOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(140, 150, 160, 0.9);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 82;
+      transition: opacity 0.3s ease;
+    `;
+    this.hudWrap.appendChild(this.smokeOverlay);
 
     // 準星 Hitmarker (受擊命中 X 叉叉)
     this.hitmarker = document.createElement('div');
@@ -436,7 +454,7 @@ export class HUD {
   }
 
   /**
-   * 觸發閃光彈致盲全白效果與平滑退白
+   * 觸發閃光彈致盲全白效果與長效平滑退白 (5.5 秒震撼致盲)
    * @param {number} intensity 致盲強度 (0.0 ~ 1.0)
    */
   triggerFlashbang(intensity = 1.0) {
@@ -451,8 +469,9 @@ export class HUD {
     let currentOpacity = Math.min(1.0, Math.max(0.1, intensity));
     this.flashOverlay.style.opacity = currentOpacity;
 
-    // 經典 CS 閃光彈衰減曲線：先維持全白 0.8s，再緩慢衰減
-    const totalDuration = intensity > 0.6 ? 3200 : 1800;
+    // 經典 CS 閃光彈衰減曲線：前 1.5 秒維持全白，隨後 4 秒緩慢衰減 (總計 5.5 秒)
+    const totalDuration = intensity > 0.6 ? 5500 : 3000;
+    const holdFullTime = intensity > 0.6 ? 1500 : 600;
     const startTime = performance.now();
 
     this.flashFadeInterval = setInterval(() => {
@@ -464,11 +483,23 @@ export class HUD {
         return;
       }
 
-      // 非線性平滑衰減 (漸漸看得見物體輪廓)
-      const progress = elapsed / totalDuration;
-      const decay = Math.pow(1.0 - progress, 1.6);
-      this.flashOverlay.style.opacity = (currentOpacity * decay).toFixed(3);
+      if (elapsed <= holdFullTime) {
+        this.flashOverlay.style.opacity = currentOpacity.toFixed(3);
+      } else {
+        // 非線性平滑衰減 (漸漸看得見周遭景物)
+        const decayProgress = (elapsed - holdFullTime) / (totalDuration - holdFullTime);
+        const decay = Math.pow(1.0 - decayProgress, 1.8);
+        this.flashOverlay.style.opacity = (currentOpacity * decay).toFixed(3);
+      }
     }, 40);
+  }
+
+  /**
+   * 設置身處煙霧彈內部時的全螢幕濃霧盲區罩層
+   */
+  setSmokeScreen(inSmoke) {
+    if (!this.smokeOverlay) return;
+    this.smokeOverlay.style.opacity = inSmoke ? '0.88' : '0';
   }
 
   updateAmmo(weapon) {

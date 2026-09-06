@@ -190,5 +190,20 @@ export const WEAPON_CONFIGS = {
     airSpreadMultiplier: 1.0,
     recoilVertical: 0,
     recoilHorizontal: 0
+  },
+  SMOKE_GRENADE: {
+    id: 'smoke_grenade',
+    name: 'Smoke Grenade',
+    type: 'grenade',
+    fireRate: 0.8,
+    automatic: false,
+    clipSize: 1, // 可攜帶 1 顆煙霧彈
+    maxReserve: 0,
+    reloadTime: 0,
+    baseSpread: 0,
+    moveSpreadMultiplier: 1.0,
+    airSpreadMultiplier: 1.0,
+    recoilVertical: 0,
+    recoilHorizontal: 0
   }
 };
