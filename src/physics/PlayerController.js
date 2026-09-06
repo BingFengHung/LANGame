@@ -56,6 +56,13 @@ export class PlayerController {
     this.bobTimer = 0;
     this.bobAmount = 0.04;
 
+    // 生命值與護甲
+    this.maxHp = 100;
+    this.hp = 100;
+    this.maxArmor = 100;
+    this.armor = 100;
+    this.isDead = false;
+
     this.spawn(new THREE.Vector3(0, 2, 8), 0);
     this.initEventListeners();
   }
@@ -338,5 +345,34 @@ export class PlayerController {
     this.mouseDeltaX = 0;
     this.mouseDeltaY = 0;
     return delta;
+  }
+
+  takeDamage(amount) {
+    if (this.isDead) return null;
+
+    let dmg = amount;
+    if (this.armor > 0) {
+      const absorbed = Math.min(this.armor, Math.round(dmg * 0.5));
+      this.armor -= absorbed;
+      dmg -= absorbed;
+    }
+
+    this.hp = Math.max(0, this.hp - dmg);
+    if (this.hp <= 0) {
+      this.isDead = true;
+    }
+
+    return {
+      hp: this.hp,
+      armor: this.armor,
+      isDead: this.isDead
+    };
+  }
+
+  respawn(position = new THREE.Vector3(0, 2, 8), yaw = 0) {
+    this.hp = this.maxHp;
+    this.armor = this.maxArmor;
+    this.isDead = false;
+    this.spawn(position, yaw);
   }
 }

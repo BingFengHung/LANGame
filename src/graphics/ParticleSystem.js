@@ -34,6 +34,12 @@ export class ParticleSystem {
       transparent: true,
       blending: THREE.AdditiveBlending
     });
+
+    this.bloodMaterial = new THREE.PointsMaterial({
+      color: 0xcc1111,
+      size: 0.08,
+      transparent: true
+    });
   }
 
   initTracerResources() {
@@ -41,6 +47,40 @@ export class ParticleSystem {
       color: 0xfff0aa,
       transparent: true,
       opacity: 0.85
+    });
+  }
+
+  /**
+   * 生成擊中人體的血液噴濺特效
+   */
+  createBloodEffect(point) {
+    const bloodCount = 12;
+    const positions = new Float32Array(bloodCount * 3);
+    const velocities = [];
+
+    for (let i = 0; i < bloodCount; i++) {
+      positions[i * 3] = point.x;
+      positions[i * 3 + 1] = point.y;
+      positions[i * 3 + 2] = point.z;
+
+      const v = new THREE.Vector3(
+        (Math.random() - 0.5) * 2.0,
+        Math.random() * 2.5 + 0.5,
+        (Math.random() - 0.5) * 2.0
+      );
+      velocities.push(v);
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const pointsMesh = new THREE.Points(geo, this.bloodMaterial.clone());
+    this.scene.add(pointsMesh);
+
+    this.sparks.push({
+      mesh: pointsMesh,
+      velocities: velocities,
+      life: 0.35,
+      maxLife: 0.35
     });
   }
 
