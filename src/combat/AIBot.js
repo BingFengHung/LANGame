@@ -675,6 +675,58 @@ function createLimbBone(pA, pB, radiusA, radiusB, material, addJointCaps = true)
   return group;
 }
 
+/**
+ * 建立軍規特戰作戰靴 (Tactical Combat Boot)
+ * 徹底消滅方塊鞋盒感，具備高筒靴筒、扎腿束帶、流線鞋面、防撞橡膠鞋頭與 Vibram 齒紋大底
+ */
+function createTacticalBoot(bootMat, padMat) {
+  const bootGroup = new THREE.Group();
+
+  // 1. 高筒靴筒 (Boot Shaft - 包裹腳踝，自然銜接小腿)
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.052, 0.13, 12), bootMat);
+  shaft.position.set(0, 0.05, 0);
+  shaft.castShadow = true;
+  bootGroup.add(shaft);
+
+  // 2. 褲腳特勤束腿圈 (Blousing Band - 展現軍規俐落扎腿效果)
+  const blousing = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.009, 6, 16), padMat);
+  blousing.rotation.x = Math.PI / 2;
+  blousing.position.set(0, 0.095, 0);
+  bootGroup.add(blousing);
+
+  // 3. 流線鞋身 (Boot Instep - 前收窄、後圓潤之人體工學鞋楦)
+  const footBody = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.050, 0.17, 12), bootMat);
+  footBody.rotation.x = Math.PI / 2;
+  footBody.scale.set(0.92, 1.30, 0.82);
+  footBody.position.set(0, -0.015, 0.04);
+  footBody.castShadow = true;
+  bootGroup.add(footBody);
+
+  // 4. 耐磨橡膠圓弧防撞包頭 (Rubber Toe Bumper - 前端微上翹，告別方塊木樁)
+  const toeCap = new THREE.Mesh(new THREE.SphereGeometry(0.044, 12, 10), padMat);
+  toeCap.scale.set(0.90, 0.65, 1.15);
+  toeCap.position.set(0, -0.024, 0.125);
+  toeCap.castShadow = true;
+  bootGroup.add(toeCap);
+
+  // 5. 後腳跟耐磨硬護杯 (Heel Counter Cup)
+  const heelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.07, 10), padMat);
+  heelCup.position.set(0, -0.005, -0.035);
+  bootGroup.add(heelCup);
+
+  // 6. 前掌防滑戰術大底 (Forefoot Outsole)
+  const foreSole = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.020, 0.15), padMat);
+  foreSole.position.set(0, -0.042, 0.065);
+  bootGroup.add(foreSole);
+
+  // 7. 獨立加厚戰術後跟 (Tactical Heel - 形成立體落差足弓)
+  const heelSole = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.030, 0.075), padMat);
+  heelSole.position.set(0, -0.037, -0.035);
+  bootGroup.add(heelSole);
+
+  return bootGroup;
+}
+
 export class AIBot {
   constructor(scene, name, spawnPos, options = {}) {
     this.scene = scene;
@@ -779,28 +831,39 @@ export class AIBot {
   // 告別劈叉與粗糙方塊，自然戰術站姿與立體裝備
   // ==========================================================
   buildLegsModule() {
-    // 骨盆/臀部襠部 (Hips & Pelvis)
-    const hipsGeo = new THREE.BoxGeometry(0.28, 0.16, 0.22);
+    // 骨盆臀部 (Pelvis - 上寬下微收扁圓幾何，徹底消滅生硬大立方盒)
+    const hipsGeo = new THREE.CylinderGeometry(0.145, 0.125, 0.16, 14);
     const hips = new THREE.Mesh(hipsGeo, this.pantsMat);
+    hips.scale.set(1.10, 1.0, 0.82);
     hips.position.set(0, 0.74, 0);
     hips.castShadow = true;
     this.group.add(hips);
 
-    // 襠部三角形加強塊
-    const crotchGeo = new THREE.CylinderGeometry(0.075, 0.045, 0.14, 8);
+    // 襠部三角形斜向自然過渡 (Crotch Gusset - 消除雙腿間粗糙門字方框)
+    const crotchGeo = new THREE.CylinderGeometry(0.065, 0.035, 0.15, 10);
     const crotch = new THREE.Mesh(crotchGeo, this.pantsMat);
-    crotch.position.set(0, 0.70, 0.03);
+    crotch.rotation.x = 0.25;
+    crotch.position.set(0, 0.69, 0.02);
     crotch.castShadow = true;
     this.group.add(crotch);
 
     // 緊湊自然的人體雙腿參數 (間距 0.086m)
     const legSpacing = 0.086;
-    const thighGeo = new THREE.CylinderGeometry(0.076, 0.062, 0.36, 12);
-    const calfGeo = new THREE.CylinderGeometry(0.062, 0.050, 0.36, 12);
-    const cargoPocketGeo = new THREE.BoxGeometry(0.035, 0.14, 0.11);
-    const kneepadGeo = new THREE.BoxGeometry(0.11, 0.10, 0.045);
-    const bootFootGeo = new THREE.BoxGeometry(0.115, 0.12, 0.22);
-    const bootSoleGeo = new THREE.BoxGeometry(0.12, 0.03, 0.23);
+
+    // 左右兩側髖關節球窩 (Hip Joint Sockets - 圓潤自然承接大腿頂端)
+    for (const sx of [-legSpacing, legSpacing]) {
+      const hipSocket = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 10), this.pantsMat);
+      hipSocket.position.set(sx, 0.73, 0);
+      this.group.add(hipSocket);
+    }
+
+    // 大腿與小腿人體工學微錐幾何
+    const thighGeo = new THREE.CylinderGeometry(0.074, 0.058, 0.36, 14);
+    const calfGeo = new THREE.CylinderGeometry(0.056, 0.046, 0.34, 14);
+    const cargoPocketGeo = new THREE.BoxGeometry(0.038, 0.14, 0.11);
+
+    // 人體工學立體曲面防衝擊護膝 (Curved AirFlex Kneepads - 告別方塊黑板磚！)
+    const kneepadGeo = new THREE.SphereGeometry(0.060, 12, 10);
 
     // --- 左腿 (前導微前伸) ---
     this.leftLegPivot = new THREE.Group();
@@ -808,6 +871,7 @@ export class AIBot {
     this.leftLegPivot.rotation.set(0.04, -0.05, 0);
 
     this.leftLegMesh = new THREE.Mesh(thighGeo, this.pantsMat);
+    this.leftLegMesh.scale.set(0.96, 1.0, 1.10); // 前凸大腿四頭肌
     this.leftLegMesh.position.set(0, -0.18, 0);
     this.leftLegMesh.castShadow = true;
     this.leftLegMesh.userData = { bot: this, part: 'legs' };
@@ -823,27 +887,33 @@ export class AIBot {
     this.leftKneePivot.rotation.x = 0.08;
     this.leftLegPivot.add(this.leftKneePivot);
 
+    // 左膝立體弧面護膝與抗衝擊凸條
     const leftKneepad = new THREE.Mesh(kneepadGeo, this.padMat);
-    leftKneepad.position.set(0, 0, 0.055);
+    leftKneepad.scale.set(0.88, 1.18, 0.45);
+    leftKneepad.position.set(0, 0.01, 0.052);
     this.leftKneePivot.add(leftKneepad);
 
-    const leftStrap = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.015), this.padMat);
-    leftStrap.position.set(0, 0, -0.045);
-    this.leftKneePivot.add(leftStrap);
+    const leftKneeRidge = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.085, 0.015), this.chromeMat);
+    leftKneeRidge.position.set(0, 0.01, 0.068);
+    this.leftKneePivot.add(leftKneeRidge);
+
+    // 膝後雙道彈性束帶
+    for (const sy of [-0.035, 0.035]) {
+      const strap = new THREE.Mesh(new THREE.CylinderGeometry(0.054, 0.054, 0.016, 12), this.padMat);
+      strap.position.set(0, sy, 0);
+      this.leftKneePivot.add(strap);
+    }
 
     const leftCalf = new THREE.Mesh(calfGeo, this.pantsMat);
+    leftCalf.scale.set(0.95, 1.0, 1.06);
     leftCalf.position.set(0, -0.18, 0);
     leftCalf.castShadow = true;
     this.leftKneePivot.add(leftCalf);
 
-    const leftBootFoot = new THREE.Mesh(bootFootGeo, this.bootMat);
-    leftBootFoot.position.set(0, -0.32, 0.025);
-    leftBootFoot.castShadow = true;
-    this.leftKneePivot.add(leftBootFoot);
-
-    const leftBootSole = new THREE.Mesh(bootSoleGeo, this.padMat);
-    leftBootSole.position.set(0, -0.37, 0.03);
-    this.leftKneePivot.add(leftBootSole);
+    // 左腳：軍規特戰作戰靴 (流線鞋面 + 防撞圓弧橡膠包頭 + Vibram 齒紋大底，徹底告別鞋盒！)
+    const leftBoot = createTacticalBoot(this.bootMat, this.padMat);
+    leftBoot.position.set(0, -0.32, 0.02);
+    this.leftKneePivot.add(leftBoot);
 
     this.group.add(this.leftLegPivot);
 
@@ -853,6 +923,7 @@ export class AIBot {
     this.rightLegPivot.rotation.set(0.04, 0.12, 0);
 
     this.rightLegMesh = new THREE.Mesh(thighGeo, this.pantsMat);
+    this.rightLegMesh.scale.set(0.96, 1.0, 1.10);
     this.rightLegMesh.position.set(0, -0.18, 0);
     this.rightLegMesh.castShadow = true;
     this.rightLegMesh.userData = { bot: this, part: 'legs' };
@@ -860,7 +931,7 @@ export class AIBot {
     this.hitboxes.push(this.rightLegMesh);
 
     // Safariland 腿掛快拔槍套
-    const holster = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.17, 0.08), this.padMat);
+    const holster = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.16, 0.075), this.padMat);
     holster.position.set(0.07, -0.16, 0.01);
     this.rightLegPivot.add(holster);
 
@@ -874,27 +945,32 @@ export class AIBot {
     this.rightKneePivot.rotation.x = 0.08;
     this.rightLegPivot.add(this.rightKneePivot);
 
+    // 右膝立體弧面護膝與抗衝擊凸條
     const rightKneepad = new THREE.Mesh(kneepadGeo, this.padMat);
-    rightKneepad.position.set(0, 0, 0.055);
+    rightKneepad.scale.set(0.88, 1.18, 0.45);
+    rightKneepad.position.set(0, 0.01, 0.052);
     this.rightKneePivot.add(rightKneepad);
 
-    const rightStrap = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.015), this.padMat);
-    rightStrap.position.set(0, 0, -0.045);
-    this.rightKneePivot.add(rightStrap);
+    const rightKneeRidge = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.085, 0.015), this.chromeMat);
+    rightKneeRidge.position.set(0, 0.01, 0.068);
+    this.rightKneePivot.add(rightKneeRidge);
+
+    for (const sy of [-0.035, 0.035]) {
+      const strap = new THREE.Mesh(new THREE.CylinderGeometry(0.054, 0.054, 0.016, 12), this.padMat);
+      strap.position.set(0, sy, 0);
+      this.rightKneePivot.add(strap);
+    }
 
     const rightCalf = new THREE.Mesh(calfGeo, this.pantsMat);
+    rightCalf.scale.set(0.95, 1.0, 1.06);
     rightCalf.position.set(0, -0.18, 0);
     rightCalf.castShadow = true;
     this.rightKneePivot.add(rightCalf);
 
-    const rightBootFoot = new THREE.Mesh(bootFootGeo, this.bootMat);
-    rightBootFoot.position.set(0, -0.32, 0.025);
-    rightBootFoot.castShadow = true;
-    this.rightKneePivot.add(rightBootFoot);
-
-    const rightBootSole = new THREE.Mesh(bootSoleGeo, this.padMat);
-    rightBootSole.position.set(0, -0.37, 0.03);
-    this.rightKneePivot.add(rightBootSole);
+    // 右腳：軍規特戰作戰靴
+    const rightBoot = createTacticalBoot(this.bootMat, this.padMat);
+    rightBoot.position.set(0, -0.32, 0.02);
+    this.rightKneePivot.add(rightBoot);
 
     this.group.add(this.rightLegPivot);
   }
