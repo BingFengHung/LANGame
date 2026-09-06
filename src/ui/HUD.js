@@ -32,15 +32,17 @@ export class HUD {
     `;
 
     this.blocker.innerHTML = `
-      <div style="text-align: center; max-width: 500px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(20, 24, 30, 0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <div style="text-align: center; max-width: 540px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(20, 24, 30, 0.88); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
         <h1 style="font-size: 2.2rem; margin-bottom: 12px; color: #f6ad55; letter-spacing: 2px;">3D 區網對戰射擊</h1>
         <p style="font-size: 1.1rem; margin-bottom: 24px; color: #a0aec0;">點擊任意處鎖定滑鼠進入戰鬥</p>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; font-size: 0.9rem; color: #cbd5e0; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-          <div><b style="color: #63b3ed;">[W / A / S / D]</b> 移動</div>
+          <div><b style="color: #63b3ed;">[W / A / S / D]</b> 移動與急停</div>
+          <div><b style="color: #63b3ed;">[滑鼠左鍵]</b> 開火射擊</div>
           <div><b style="color: #63b3ed;">[空白鍵 Space]</b> 跳躍</div>
-          <div><b style="color: #63b3ed;">[Shift]</b> 靜音慢走</div>
-          <div><b style="color: #63b3ed;">[Ctrl / C]</b> 蹲下</div>
-          <div><b style="color: #63b3ed;">[滑鼠移動]</b> 轉動視角</div>
+          <div><b style="color: #63b3ed;">[R]</b> 換彈匣</div>
+          <div><b style="color: #63b3ed;">[1 / 2 / 3] 或 滾輪</b> 切換武器</div>
+          <div><b style="color: #63b3ed;">[Shift]</b> 慢走 / <b style="color: #63b3ed;">[Ctrl/C]</b> 蹲下</div>
+          <div><b style="color: #63b3ed;">[滑鼠轉向]</b> 旋轉視角</div>
           <div><b style="color: #63b3ed;">[ESC]</b> 釋放滑鼠</div>
         </div>
         <div style="margin-top: 20px; font-size: 0.8rem; color: #718096;">
@@ -72,42 +74,44 @@ export class HUD {
       bottom: 24px;
       left: 30px;
       display: flex;
-      gap: 20px;
+      gap: 24px;
       font-family: monospace;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: bold;
-      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+      text-shadow: 0 0 6px rgba(0,0,0,0.9);
     `;
     statusPanel.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px; color: #e53e3e;">
-        <span style="font-size: 16px; opacity: 0.8;">HP</span>
+      <div style="display: flex; align-items: center; gap: 8px; color: #fc8181;">
+        <span style="font-size: 16px; opacity: 0.8;">+ HP</span>
         <span id="hud-hp">100</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px; color: #3182ce;">
-        <span style="font-size: 16px; opacity: 0.8;">ARMOR</span>
+      <div style="display: flex; align-items: center; gap: 8px; color: #63b3ed;">
+        <span style="font-size: 16px; opacity: 0.8;">🛡 ARMOR</span>
         <span id="hud-armor">100</span>
       </div>
     `;
     this.hudWrap.appendChild(statusPanel);
 
-    // 右下角彈藥數
-    const ammoPanel = document.createElement('div');
-    ammoPanel.style.cssText = `
+    // 右下角武器名稱與彈藥
+    this.ammoPanel = document.createElement('div');
+    this.ammoPanel.style.cssText = `
       position: absolute;
       bottom: 24px;
       right: 30px;
+      text-align: right;
       font-family: monospace;
-      font-size: 28px;
-      font-weight: bold;
-      color: #ecc94b;
-      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+      text-shadow: 0 0 6px rgba(0,0,0,0.9);
     `;
-    ammoPanel.innerHTML = `
-      <span id="hud-ammo-clip">30</span>
-      <span style="font-size: 18px; opacity: 0.7;"> / </span>
-      <span id="hud-ammo-reserve" style="font-size: 20px; opacity: 0.8;">90</span>
+    this.ammoPanel.innerHTML = `
+      <div id="hud-weapon-name" style="font-size: 18px; color: #e2e8f0; margin-bottom: 4px; letter-spacing: 1px;">AK-47</div>
+      <div style="font-size: 32px; font-weight: bold; color: #f6e05e;">
+        <span id="hud-ammo-clip">30</span>
+        <span id="hud-ammo-divider" style="font-size: 20px; opacity: 0.6;"> / </span>
+        <span id="hud-ammo-reserve" style="font-size: 22px; opacity: 0.85;">90</span>
+      </div>
+      <div id="hud-reload-hint" style="font-size: 13px; color: #fc8181; display: none; margin-top: 2px;">RELOADING...</div>
     `;
-    this.hudWrap.appendChild(ammoPanel);
+    this.hudWrap.appendChild(this.ammoPanel);
 
     this.container.appendChild(this.hudWrap);
   }
@@ -123,10 +127,33 @@ export class HUD {
     }
   }
 
-  updateSpread(speed) {
-    // 依據速度微調準星寬度
-    const baseSpread = 8;
-    const dynamicSpread = baseSpread + speed * 1.5;
-    this.crosshair.setSpread(dynamicSpread);
+  updateAmmo(weapon) {
+    const nameEl = document.getElementById('hud-weapon-name');
+    const clipEl = document.getElementById('hud-ammo-clip');
+    const reserveEl = document.getElementById('hud-ammo-reserve');
+    const dividerEl = document.getElementById('hud-ammo-divider');
+    const reloadHint = document.getElementById('hud-reload-hint');
+
+    if (nameEl) nameEl.textContent = weapon.name;
+
+    if (weapon.type === 'melee') {
+      if (clipEl) clipEl.textContent = '—';
+      if (reserveEl) reserveEl.style.display = 'none';
+      if (dividerEl) dividerEl.style.display = 'none';
+      if (reloadHint) reloadHint.style.display = 'none';
+    } else {
+      if (reserveEl) reserveEl.style.display = 'inline';
+      if (dividerEl) dividerEl.style.display = 'inline';
+      if (clipEl) clipEl.textContent = weapon.currentClip;
+      if (reserveEl) reserveEl.textContent = weapon.currentReserve;
+
+      if (reloadHint) {
+        reloadHint.style.display = weapon.isReloading ? 'block' : 'none';
+      }
+    }
+  }
+
+  updateSpread(spreadPx) {
+    this.crosshair.setSpread(spreadPx);
   }
 }

@@ -6,109 +6,244 @@ export class WeaponView {
     this.gunPivot = new THREE.Group();
     this.viewmodelScene.add(this.gunPivot);
 
-    // 武器在第一人稱視角下的預設位置與旋轉
+    // 武器定位
     this.defaultPos = new THREE.Vector3(0.18, -0.16, -0.35);
-    this.defaultRot = new THREE.Euler(0, 0, 0);
-
     this.gunPivot.position.copy(this.defaultPos);
 
-    this.buildProceduralRifle();
+    // 後座力位移與回彈
+    this.kickOffset = new THREE.Vector3();
+    this.kickRotation = new THREE.Euler();
+
+    // 換槍切換動畫
+    this.switchProgress = 1.0;
+    this.isSwitching = false;
+
+    // 武器模型容器
+    this.weaponModels = {};
+    this.currentWeaponId = null;
+
+    // 槍口火花
+    this.muzzleFlash = null;
+    this.flashTimer = 0;
+
+    this.initModels();
+    this.initMuzzleFlash();
+    this.setWeapon('ak47');
   }
 
-  /**
-   * 建立俐落的 Low-Poly 第一人稱突擊步槍模型 (類 AK/M4 輪廓)
-   */
-  buildProceduralRifle() {
-    const gunGroup = new THREE.Group();
+  initModels() {
+    this.weaponModels['ak47'] = this.buildAK47();
+    this.weaponModels['deagle'] = this.buildDeagle();
+    this.weaponModels['knife'] = this.buildKnife();
 
-    const metalDarkMat = new THREE.MeshStandardMaterial({
-      color: 0x1f242b,
-      roughness: 0.35,
-      metalness: 0.8
-    });
+    // 先全部隱藏
+    for (const key in this.weaponModels) {
+      this.weaponModels[key].visible = false;
+      this.gunPivot.add(this.weaponModels[key]);
+    }
+  }
 
-    const woodMat = new THREE.MeshStandardMaterial({
-      color: 0x8a4b27,
-      roughness: 0.7,
-      metalness: 0.1
-    });
+  buildAK47() {
+    const group = new THREE.Group();
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f242b, roughness: 0.35, metalness: 0.8 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a4b27, roughness: 0.7, metalness: 0.1 });
 
-    // 1. 槍身主機匣 (Receiver)
-    const bodyGeo = new THREE.BoxGeometry(0.045, 0.07, 0.32);
-    const body = new THREE.Mesh(bodyGeo, metalDarkMat);
-    gunGroup.add(body);
+    // 機匣
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.07, 0.32), metalMat);
+    group.add(body);
 
-    // 2. 槍管 (Barrel)
-    const barrelGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.28, 8);
-    const barrel = new THREE.Mesh(barrelGeo, metalDarkMat);
+    // 槍管與槍口
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 8), metalMat);
     barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0, 0.02, -0.25);
-    gunGroup.add(barrel);
+    group.add(barrel);
 
-    // 3. 槍口消焰器 (Muzzle)
-    const muzzleGeo = new THREE.CylinderGeometry(0.013, 0.013, 0.04, 8);
-    const muzzle = new THREE.Mesh(muzzleGeo, metalDarkMat);
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.04, 8), metalMat);
     muzzle.rotation.x = Math.PI / 2;
     muzzle.position.set(0, 0.02, -0.4);
-    gunGroup.add(muzzle);
-    this.muzzlePoint = new THREE.Vector3(0, 0.02, -0.42);
+    group.add(muzzle);
 
-    // 4. 木質護木 (Handguard)
-    const handguardGeo = new THREE.BoxGeometry(0.048, 0.055, 0.16);
-    const handguard = new THREE.Mesh(handguardGeo, woodMat);
+    // 護木
+    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.055, 0.16), woodMat);
     handguard.position.set(0, 0.015, -0.15);
-    gunGroup.add(handguard);
+    group.add(handguard);
 
-    // 5. 弧形彈匣 (Curved Magazine)
-    const magGeo = new THREE.BoxGeometry(0.035, 0.13, 0.065);
-    const mag = new THREE.Mesh(magGeo, metalDarkMat);
+    // 彈匣
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.14, 0.065), metalMat);
     mag.position.set(0, -0.07, -0.05);
     mag.rotation.x = -0.25;
-    gunGroup.add(mag);
+    group.add(mag);
 
-    // 6. 木質槍托 (Stock)
-    const stockGeo = new THREE.BoxGeometry(0.04, 0.09, 0.18);
-    const stock = new THREE.Mesh(stockGeo, woodMat);
+    // 槍托
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.09, 0.18), woodMat);
     stock.position.set(0, -0.01, 0.22);
-    gunGroup.add(stock);
+    group.add(stock);
 
-    // 7. 握把 (Grip)
-    const gripGeo = new THREE.BoxGeometry(0.035, 0.09, 0.045);
-    const grip = new THREE.Mesh(gripGeo, woodMat);
+    // 握把
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.09, 0.045), woodMat);
     grip.position.set(0, -0.07, 0.08);
     grip.rotation.x = 0.35;
-    gunGroup.add(grip);
+    group.add(grip);
 
-    // 8. 照門與準星 (Iron Sights)
-    const sightGeo = new THREE.BoxGeometry(0.008, 0.018, 0.015);
-    const rearSight = new THREE.Mesh(sightGeo, metalDarkMat);
-    rearSight.position.set(0, 0.045, 0.06);
-    gunGroup.add(rearSight);
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.42);
+    return group;
+  }
 
-    const frontSight = new THREE.Mesh(sightGeo, metalDarkMat);
-    frontSight.position.set(0, 0.042, -0.22);
-    gunGroup.add(frontSight);
+  buildDeagle() {
+    const group = new THREE.Group();
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xd0d5dd, roughness: 0.2, metalness: 0.9 });
+    const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
 
-    this.gunGroup = gunGroup;
-    this.gunPivot.add(gunGroup);
+    // 滑套 (Slide)
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.22), chromeMat);
+    slide.position.set(0, 0.03, -0.05);
+    group.add(slide);
+
+    // 下槍身與握把
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.04, 0.18), gripMat);
+    frame.position.set(0, 0, -0.04);
+    group.add(frame);
+
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.12, 0.055), gripMat);
+    grip.position.set(0, -0.07, 0.03);
+    grip.rotation.x = 0.25;
+    group.add(grip);
+
+    // 槍口
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.04, 8), chromeMat);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.03, -0.17);
+    group.add(barrel);
+
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.03, -0.19);
+    return group;
+  }
+
+  buildKnife() {
+    const group = new THREE.Group();
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x3a424e, roughness: 0.25, metalness: 0.9 });
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x22262a, roughness: 0.7 });
+
+    // 刀刃
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.04, 0.22), bladeMat);
+    blade.position.set(0, 0.02, -0.12);
+    group.add(blade);
+
+    // 刀柄
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.035, 0.14), handleMat);
+    handle.position.set(0, -0.01, 0.05);
+    group.add(handle);
+
+    // 護手
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.06, 0.015), handleMat);
+    guard.position.set(0, 0.01, -0.02);
+    group.add(guard);
+
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.23);
+    return group;
+  }
+
+  initMuzzleFlash() {
+    this.flashGroup = new THREE.Group();
+
+    const flashMat = new THREE.MeshBasicMaterial({
+      color: 0xffe066,
+      transparent: true,
+      opacity: 0.95
+    });
+
+    // 星形十字槍火幾何體
+    const plane1 = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.12), flashMat);
+    const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.12), flashMat);
+    plane2.rotation.z = Math.PI / 4;
+
+    this.flashGroup.add(plane1);
+    this.flashGroup.add(plane2);
+
+    // 瞬間點光源照亮周遭
+    this.flashLight = new THREE.PointLight(0xffa726, 3.0, 4);
+    this.flashGroup.add(this.flashLight);
+
+    this.flashGroup.visible = false;
+    this.gunPivot.add(this.flashGroup);
+  }
+
+  setWeapon(weaponId) {
+    if (this.currentWeaponId === weaponId) return;
+
+    // 隱藏舊武器
+    if (this.currentWeaponId && this.weaponModels[this.currentWeaponId]) {
+      this.weaponModels[this.currentWeaponId].visible = false;
+    }
+
+    this.currentWeaponId = weaponId;
+    const currentModel = this.weaponModels[weaponId];
+    if (currentModel) {
+      currentModel.visible = true;
+      // 定位槍火至該武器槍口
+      if (currentModel.userData.muzzleOffset) {
+        this.flashGroup.position.copy(currentModel.userData.muzzleOffset);
+      }
+    }
+
+    // 觸發切換掏槍動畫
+    this.switchProgress = 0.0;
+    this.isSwitching = true;
   }
 
   /**
-   * 根據玩家移動與視角轉動產生武器微晃動 (Weapon Sway & Bobbing)
+   * 觸發開火後座力動畫與槍口火花
    */
+  triggerShoot(recoilAmount = 0.03) {
+    // 槍枝往後踢並向上抬起
+    this.kickOffset.z = 0.045 * (recoilAmount / 0.02);
+    this.kickRotation.x = 0.09 * (recoilAmount / 0.02);
+
+    // 顯示槍口火花
+    if (this.currentWeaponId !== 'knife') {
+      this.flashGroup.visible = true;
+      this.flashGroup.rotation.z = Math.random() * Math.PI * 2;
+      this.flashTimer = 0.045; // 45ms
+    }
+  }
+
   update(delta, currentSpeed, isMoving) {
-    // 待機時微弱呼吸晃動
+    // 1. 槍口火花倒數熄滅
+    if (this.flashTimer > 0) {
+      this.flashTimer -= delta;
+      if (this.flashTimer <= 0) {
+        this.flashGroup.visible = false;
+      }
+    }
+
+    // 2. 切換掏槍動畫 (從下方快速提槍定位)
+    if (this.isSwitching) {
+      this.switchProgress += delta * 5.0; // 0.2 秒掏槍
+      if (this.switchProgress >= 1.0) {
+        this.switchProgress = 1.0;
+        this.isSwitching = false;
+      }
+    }
+    const drawOffsetY = (1.0 - this.switchProgress) * -0.25;
+
+    // 3. 後座力回彈平滑插值 (Spring Damping)
+    this.kickOffset.z += (0 - this.kickOffset.z) * Math.min(delta * 22, 1);
+    this.kickRotation.x += (0 - this.kickRotation.x) * Math.min(delta * 22, 1);
+
+    // 4. 待機呼吸晃動與行走擺動
     const time = performance.now() * 0.002;
     let swayX = Math.sin(time) * 0.0015;
     let swayY = Math.cos(time * 1.5) * 0.0015;
 
-    // 行走時武器持槍擺動
     if (isMoving && currentSpeed > 0.5) {
       swayX += Math.cos(time * 4) * 0.006 * Math.min(currentSpeed / 5, 1.2);
       swayY += Math.sin(time * 8) * 0.005 * Math.min(currentSpeed / 5, 1.2);
     }
 
     this.gunPivot.position.x = this.defaultPos.x + swayX;
-    this.gunPivot.position.y = this.defaultPos.y + swayY;
+    this.gunPivot.position.y = this.defaultPos.y + swayY + drawOffsetY;
+    this.gunPivot.position.z = this.defaultPos.z + this.kickOffset.z;
+
+    this.gunPivot.rotation.x = this.kickRotation.x;
   }
 }

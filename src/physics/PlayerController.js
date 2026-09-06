@@ -256,6 +256,45 @@ export class PlayerController {
     }
   }
 
+  /**
+   * 施加射擊後座力抬升與左右擺動
+   */
+  applyRecoil(pitchKick, yawKick = 0) {
+    this.camera.rotation.x += pitchKick;
+    this.camera.rotation.y += yawKick;
+    this.camera.rotation.x = Math.max(
+      -Math.PI / 2 + 0.05,
+      Math.min(Math.PI / 2 - 0.05, this.camera.rotation.x)
+    );
+  }
+
+  /**
+   * 獲取開火射線 (包含依當前速度/後座力計算的隨機散佈)
+   */
+  getShootRay(spreadAngle = 0) {
+    const origin = this.camera.position.clone();
+    const direction = new THREE.Vector3();
+    this.camera.getWorldDirection(direction);
+
+    if (spreadAngle > 0) {
+      // 在視角垂直平面上產生隨機圓形散佈
+      const theta = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * spreadAngle;
+      const offsetX = Math.cos(theta) * r;
+      const offsetY = Math.sin(theta) * r;
+
+      // 構建相機右向量與上向量
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
+
+      direction.addScaledVector(right, offsetX);
+      direction.addScaledVector(up, offsetY);
+      direction.normalize();
+    }
+
+    return new THREE.Ray(origin, direction);
+  }
+
   getPosition() {
     return this.capsule.start.clone();
   }
