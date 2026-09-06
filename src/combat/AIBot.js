@@ -29,6 +29,22 @@ export class AIBot {
     this.nextFireTime = 0;
     this.nextBurstTime = 0;
 
+    // 戰鬥開火參數
+    this.fireRate = 0.16; // 連射間隔
+    this.burstCount = 0;
+    this.burstMax = 3;
+    this.burstCooldown = 1.0;
+    this.nextFireTime = 0;
+    this.nextBurstTime = 0;
+
+    // 蹲姿壓槍狀態 (CS 經典 Crouch Spray)
+    this.isCrouching = false;
+    this.crouchProgress = 0;
+
+    // 閃光彈致盲狀態 (Blinded by Flashbang)
+    this.isFlashed = false;
+    this.flashTimer = 0;
+
     // 行走步頻動畫
     this.walkAnimTimer = 0;
 
@@ -45,82 +61,166 @@ export class AIBot {
   }
 
   buildModel() {
-    // 敵方角色材質 (經典 CS 恐怖分子風格：紅棕色夾克、迷彩褲、面罩頭部)
-    this.jacketMat = new THREE.MeshStandardMaterial({ color: 0x9c4221, roughness: 0.65 });
-    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x3d4852, roughness: 0.8 });
-    this.skinMat = new THREE.MeshStandardMaterial({ color: 0xd69e2e, roughness: 0.5 });
-    this.gunMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.3, metalness: 0.8 });
+    // 經典 CS 恐怖分子外觀材質 (鳳凰戰士 Phoenix Connexion 風格)
+    this.jacketMat = new THREE.MeshStandardMaterial({ color: 0x823b1c, roughness: 0.7 }); // 深棕紅戰鬥服
+    this.vestMat = new THREE.MeshStandardMaterial({ color: 0x2d3748, roughness: 0.8, metalness: 0.2 }); // 重裝戰術防彈背心
+    this.pouchMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.9 }); // 彈匣戰術袋
+    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x333b48, roughness: 0.85 }); // 戰術長褲
+    this.skinMat = new THREE.MeshStandardMaterial({ color: 0x2b2d31, roughness: 0.9 }); // 深灰色頭套面罩 (Balaclava)
+    this.goggleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 }); // 護目鏡
+    this.gunMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.35, metalness: 0.8 }); // 金屬槍身
+    this.woodMat = new THREE.MeshStandardMaterial({ color: 0x6e3819, roughness: 0.6 }); // 木質槍托與護木
+    this.bootMat = new THREE.MeshStandardMaterial({ color: 0x171923, roughness: 0.9 }); // 軍靴
 
-    // 1. 軀幹 (Torso)
-    const torsoGeo = new THREE.BoxGeometry(0.48, 0.65, 0.28);
+    // 1. 軀幹與防彈背心 (Torso & Armor Vest)
+    this.upperBody = new THREE.Group();
+    this.upperBody.position.set(0, 1.15, 0);
+    this.group.add(this.upperBody);
+
+    const torsoGeo = new THREE.BoxGeometry(0.46, 0.65, 0.28);
     this.torsoMesh = new THREE.Mesh(torsoGeo, this.jacketMat);
-    this.torsoMesh.position.set(0, 1.15, 0);
     this.torsoMesh.castShadow = true;
     this.torsoMesh.userData = { bot: this, part: 'body' };
-    this.group.add(this.torsoMesh);
+    this.upperBody.add(this.torsoMesh);
     this.hitboxes.push(this.torsoMesh);
 
-    // 2. 頭部 (Head)
+    // 戰術防彈背心 (包覆在胸背)
+    const vestGeo = new THREE.BoxGeometry(0.49, 0.52, 0.32);
+    const vest = new THREE.Mesh(vestGeo, this.vestMat);
+    vest.position.set(0, 0.04, 0);
+    vest.castShadow = true;
+    this.upperBody.add(vest);
+
+    // 胸前三聯彈匣戰術袋 (Ammo Pouches)
+    for (let p = -1; p <= 1; p++) {
+      const pouchGeo = new THREE.BoxGeometry(0.09, 0.16, 0.06);
+      const pouch = new THREE.Mesh(pouchGeo, this.pouchMat);
+      pouch.position.set(p * 0.11, -0.06, 0.18);
+      this.upperBody.add(pouch);
+    }
+
+    // 2. 頭部與面罩護目鏡 (Head with Balaclava & Goggles)
     const headGeo = new THREE.BoxGeometry(0.24, 0.26, 0.24);
     this.headMesh = new THREE.Mesh(headGeo, this.skinMat);
-    this.headMesh.position.set(0, 1.62, 0);
+    this.headMesh.position.set(0, 0.46, 0);
     this.headMesh.castShadow = true;
     this.headMesh.userData = { bot: this, part: 'head' };
-    this.group.add(this.headMesh);
+    this.upperBody.add(this.headMesh);
     this.hitboxes.push(this.headMesh);
 
-    // 頭部黑色護目鏡/面罩 (強調 CS 敵人視覺)
-    const maskGeo = new THREE.BoxGeometry(0.25, 0.08, 0.12);
-    const maskMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const mask = new THREE.Mesh(maskGeo, maskMat);
-    mask.position.set(0, 1.63, 0.09);
-    this.group.add(mask);
+    // 戰術反光護目鏡
+    const goggleGeo = new THREE.BoxGeometry(0.25, 0.08, 0.1);
+    const goggle = new THREE.Mesh(goggleGeo, this.goggleMat);
+    goggle.position.set(0, 0.48, 0.09);
+    this.upperBody.add(goggle);
 
-    // 3. 雙腿 (Legs) - 具備跑步前後擺動 pivot
+    // 3. 雙腿與戰術靴、護膝 (Legs with Kneepads & Boots)
+    const legGeo = new THREE.BoxGeometry(0.18, 0.74, 0.2);
+    
+    // 左腿
     this.leftLegPivot = new THREE.Group();
-    this.leftLegPivot.position.set(-0.14, 0.82, 0);
-    const legGeo = new THREE.BoxGeometry(0.18, 0.78, 0.22);
+    this.leftLegPivot.position.set(-0.14, 0.78, 0);
     this.leftLegMesh = new THREE.Mesh(legGeo, this.pantsMat);
-    this.leftLegMesh.position.set(0, -0.39, 0);
+    this.leftLegMesh.position.set(0, -0.37, 0);
     this.leftLegMesh.castShadow = true;
     this.leftLegMesh.userData = { bot: this, part: 'legs' };
     this.leftLegPivot.add(this.leftLegMesh);
+
+    // 左膝護膝 (Kneepad)
+    const kneepadGeo = new THREE.BoxGeometry(0.15, 0.13, 0.07);
+    const leftKneepad = new THREE.Mesh(kneepadGeo, this.vestMat);
+    leftKneepad.position.set(0, -0.36, 0.11);
+    this.leftLegPivot.add(leftKneepad);
+
+    // 左腳戰術軍靴 (Combat Boot)
+    const bootGeo = new THREE.BoxGeometry(0.185, 0.18, 0.26);
+    const leftBoot = new THREE.Mesh(bootGeo, this.bootMat);
+    leftBoot.position.set(0, -0.68, 0.02);
+    this.leftLegPivot.add(leftBoot);
+
     this.group.add(this.leftLegPivot);
     this.hitboxes.push(this.leftLegMesh);
 
+    // 右腿
     this.rightLegPivot = new THREE.Group();
-    this.rightLegPivot.position.set(0.14, 0.82, 0);
+    this.rightLegPivot.position.set(0.14, 0.78, 0);
     this.rightLegMesh = new THREE.Mesh(legGeo, this.pantsMat);
-    this.rightLegMesh.position.set(0, -0.39, 0);
+    this.rightLegMesh.position.set(0, -0.37, 0);
     this.rightLegMesh.castShadow = true;
     this.rightLegMesh.userData = { bot: this, part: 'legs' };
     this.rightLegPivot.add(this.rightLegMesh);
+
+    // 右膝護膝
+    const rightKneepad = new THREE.Mesh(kneepadGeo, this.vestMat);
+    rightKneepad.position.set(0, -0.36, 0.11);
+    this.rightLegPivot.add(rightKneepad);
+
+    // 右腳戰術軍靴
+    const rightBoot = new THREE.Mesh(bootGeo, this.bootMat);
+    rightBoot.position.set(0, -0.68, 0.02);
+    this.rightLegPivot.add(rightBoot);
+
     this.group.add(this.rightLegPivot);
     this.hitboxes.push(this.rightLegMesh);
 
-    // 4. 右手持槍手部 (Arm & Rifle)
-    this.rightArmPivot = new THREE.Group();
-    this.rightArmPivot.position.set(0.32, 1.35, 0);
-    const armGeo = new THREE.BoxGeometry(0.12, 0.55, 0.14);
-    const rightArm = new THREE.Mesh(armGeo, this.jacketMat);
-    rightArm.position.set(0, -0.22, 0);
-    rightArm.rotation.x = -Math.PI / 4; // 舉槍瞄準姿勢
-    this.rightArmPivot.add(rightArm);
-    this.group.add(this.rightArmPivot);
+    // 4. 雙手真實持槍姿勢 (Two-handed Rifle Holding)
+    this.armsPivot = new THREE.Group();
+    this.armsPivot.position.set(0, 0.2, 0);
+    this.upperBody.add(this.armsPivot);
 
-    // 武器模型 (步槍)
-    const rifleGeo = new THREE.BoxGeometry(0.06, 0.08, 0.55);
-    const rifle = new THREE.Mesh(rifleGeo, this.gunMat);
-    rifle.position.set(0.26, 1.25, 0.3);
-    this.group.add(rifle);
+    // 右手臂 (後方握把扣扳機)
+    const armGeo = new THREE.BoxGeometry(0.11, 0.44, 0.12);
+    this.rightArm = new THREE.Mesh(armGeo, this.jacketMat);
+    this.rightArm.position.set(0.25, -0.06, 0.1);
+    this.rightArm.rotation.set(-1.1, 0.25, -0.3);
+    this.armsPivot.add(this.rightArm);
 
-    // 槍口起點
-    this.muzzlePoint = new THREE.Vector3(0.26, 1.25, 0.62);
+    // 左手臂 (前方斜出托槍護木)
+    this.leftArm = new THREE.Mesh(armGeo, this.jacketMat);
+    this.leftArm.position.set(-0.16, -0.1, 0.2);
+    this.leftArm.rotation.set(-1.3, -0.4, 0.65);
+    this.armsPivot.add(this.leftArm);
 
-    // 槍火光
+    // 5. 步槍模型 (AK-47 風格)
+    this.weaponGroup = new THREE.Group();
+    this.weaponGroup.position.set(0.16, -0.05, 0.42);
+    this.weaponGroup.rotation.set(0, -0.08, 0);
+
+    // 槍身機匣
+    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.38), this.gunMat);
+    this.weaponGroup.add(gunBody);
+
+    // 槍管
+    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.32, 6), this.gunMat);
+    gunBarrel.rotation.x = Math.PI / 2;
+    gunBarrel.position.set(0, 0.02, 0.28);
+    this.weaponGroup.add(gunBarrel);
+
+    // 木質護木
+    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.08, 0.18), this.woodMat);
+    handguard.position.set(0, 0.01, 0.14);
+    this.weaponGroup.add(handguard);
+
+    // 弧形彈匣
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), this.gunMat);
+    mag.position.set(0, -0.1, 0.04);
+    mag.rotation.x = 0.25;
+    this.weaponGroup.add(mag);
+
+    // 木質槍托
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.1, 0.2), this.woodMat);
+    stock.position.set(0, -0.01, -0.24);
+    this.weaponGroup.add(stock);
+
+    this.armsPivot.add(this.weaponGroup);
+
+    // 槍口射擊座標 (世界相對起點)
+    this.muzzleLocal = new THREE.Vector3(0.16, 1.32, 0.86);
+
+    // 槍火光 (星形平面)
     const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true });
-    this.flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.15), flashMat);
-    this.flashMesh.position.set(0.26, 1.25, 0.65);
+    this.flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.18), flashMat);
+    this.flashMesh.position.set(0.16, 1.32, 0.9);
     this.flashMesh.visible = false;
     this.group.add(this.flashMesh);
   }
@@ -221,12 +321,31 @@ export class AIBot {
     }, 120);
   }
 
+  /**
+   * 遭受閃光彈致盲
+   */
+  applyFlash(duration = 3.5) {
+    if (this.isDead) return;
+    this.isFlashed = true;
+    this.flashTimer = Math.max(this.flashTimer, duration);
+
+    // 舉手遮眼恐慌姿勢 (Cover eyes)
+    if (this.armsPivot) {
+      this.armsPivot.rotation.x = 0.8;
+      this.armsPivot.rotation.z = -0.4;
+    }
+  }
+
   die(isHeadshot = false) {
     this.isDead = true;
     this.respawnTimer = 4.0; // 4 秒後重生
+    this.isFlashed = false;
+    this.flashTimer = 0;
+    this.isCrouching = false;
 
-    // 倒地姿勢 (平躺於當前地面高度)
+    // 倒地姿勢 (自然向後倒臥於地面)
     this.group.rotation.x = -Math.PI / 2;
+    if (this.upperBody) this.upperBody.position.y = 0.3;
     this.uiSprite.visible = false;
     this.flashMesh.visible = false;
     this.resetLegs();
@@ -239,6 +358,13 @@ export class AIBot {
   respawn() {
     this.isDead = false;
     this.hp = this.maxHp;
+    this.isFlashed = false;
+    this.flashTimer = 0;
+    this.isCrouching = false;
+    if (this.upperBody) this.upperBody.position.y = 1.15;
+    if (this.armsPivot) {
+      this.armsPivot.rotation.set(0, 0, 0);
+    }
     this.group.position.copy(this.spawnPos);
     this.group.rotation.set(0, Math.random() * Math.PI * 2, 0);
     this.uiSprite.visible = true;
@@ -265,7 +391,30 @@ export class AIBot {
       this.flashMesh.visible = false;
     }
 
-    // 3. 計算與玩家之距離與視線遮擋
+    // 3. 處理閃光彈致盲倒數
+    if (this.isFlashed) {
+      this.flashTimer -= delta;
+      if (this.flashTimer <= 0) {
+        this.isFlashed = false;
+        this.flashTimer = 0;
+        if (this.armsPivot) {
+          this.armsPivot.rotation.set(0, 0, 0);
+        }
+      } else {
+        // 致盲慌亂狀態：手臂擋光、原地無助盲晃、不追蹤玩家
+        this.resetLegs();
+        this.group.rotation.y += Math.sin(now * 6) * delta * 1.2;
+        return;
+      }
+    }
+
+    // 4. 蹲下壓槍平滑過渡 (Crouch Smoothing)
+    const targetUpperY = this.isCrouching ? 0.85 : 1.15;
+    if (this.upperBody) {
+      this.upperBody.position.y += (targetUpperY - this.upperBody.position.y) * Math.min(delta * 12, 1);
+    }
+
+    // 5. 計算與玩家之距離與視線遮擋
     const distToPlayer = this.group.position.distanceTo(playerPos);
     const canSeePlayer = isPlayerAlive && distToPlayer < 40 && this.hasLineOfSight(playerPos);
 
@@ -279,6 +428,7 @@ export class AIBot {
     if (this.state === 'COMBAT') {
       this.updateCombat(delta, playerPos, distToPlayer, now);
     } else {
+      this.isCrouching = false;
       this.updatePatrol(delta, now);
     }
   }
@@ -337,30 +487,39 @@ export class AIBot {
     const lookTarget = new THREE.Vector3(playerPos.x, this.group.position.y, playerPos.z);
     this.group.lookAt(lookTarget);
 
-    // 行為模式：如果太遠則向前壓進，如果在近距離 (5~15m) 則左右橫移掃射
-    if (distToPlayer > 12) {
+    // 行為模式：如果在連射開火，則急停並進行蹲姿壓槍 (Crouch Spray)
+    if (this.isCrouching) {
+      this.resetLegs();
+    } else if (distToPlayer > 12) {
+      // 距離較遠：向前壓進
       const dir = lookTarget.clone().sub(this.group.position).normalize();
       this.group.position.addScaledVector(dir, this.moveSpeed * delta);
       this.animateLegs(delta, this.moveSpeed);
     } else {
-      // 左右微幅橫移 (Strafe)
+      // 近距離 (5~12m)：左右橫移急停對槍
       const strafeDir = new THREE.Vector3(1, 0, 0).applyQuaternion(this.group.quaternion);
-      const strafeSpeed = Math.sin(now * 2) * 1.8;
+      const strafeSpeed = Math.sin(now * 2.2) * 1.7;
       this.group.position.addScaledVector(strafeDir, strafeSpeed * delta);
       this.animateLegs(delta, Math.abs(strafeSpeed));
     }
 
-    // 開火射擊玩家邏輯 (三連發點射)
+    // 開火射擊玩家邏輯 (三連發點射 + 蹲下壓槍)
     if (now >= this.nextBurstTime) {
+      // 開火前夕：50% 機率急停蹲下壓槍
+      if (this.burstCount === 0 && Math.random() < 0.6) {
+        this.isCrouching = true;
+      }
+
       if (now >= this.nextFireTime && this.burstCount < this.burstMax) {
         this.shootAtPlayer(playerPos, now);
         this.burstCount++;
         this.nextFireTime = now + this.fireRate;
 
         if (this.burstCount >= this.burstMax) {
-          // 這一輪連發結束，冷卻 1.2~1.8 秒再下一輪
+          // 這一輪連發結束，起立並冷卻 1.2~1.8 秒
           this.burstCount = 0;
-          this.nextBurstTime = now + 1.2 + Math.random() * 0.6;
+          this.isCrouching = false;
+          this.nextBurstTime = now + 1.1 + Math.random() * 0.7;
         }
       }
     }
@@ -371,16 +530,22 @@ export class AIBot {
     this.flashMesh.visible = true;
     this.flashOffTime = now + 0.05;
 
-    // 計算槍口在世界空間座標
+    // 計算槍口在世界空間座標 (從武器前沿投射)
     const muzzleWorld = new THREE.Vector3();
-    this.group.localToWorld(muzzleWorld.copy(this.muzzlePoint));
+    if (this.weaponGroup) {
+      this.weaponGroup.getWorldPosition(muzzleWorld);
+      const fwd = new THREE.Vector3(0, 0, 0.45).applyQuaternion(this.group.quaternion);
+      muzzleWorld.add(fwd);
+    } else {
+      muzzleWorld.copy(this.group.position).add(new THREE.Vector3(0, 1.25, 0.5));
+    }
 
-    // 計算瞄準方向 (加入隨機射擊散佈，避免 Bot 100% 自瞄)
-    const aimSpread = 0.07;
+    // 計算瞄準方向 (蹲下時散佈更緊湊)
+    const aimSpread = this.isCrouching ? 0.045 : 0.075;
     const targetWithSpread = playerPos.clone().add(new THREE.Vector3(
-      (Math.random() - 0.5) * aimSpread * 15,
-      (Math.random() - 0.5) * aimSpread * 10 + 0.8, // 瞄準胸口高度
-      (Math.random() - 0.5) * aimSpread * 15
+      (Math.random() - 0.5) * aimSpread * 14,
+      (Math.random() - 0.5) * aimSpread * 10 + 0.75, // 瞄準胸腹高度
+      (Math.random() - 0.5) * aimSpread * 14
     ));
 
     const shootDir = targetWithSpread.clone().sub(muzzleWorld).normalize();
@@ -404,11 +569,12 @@ export class AIBot {
       this.particleSystem.createTracer(muzzleWorld, targetWithSpread);
     }
 
-    // 隨距離與散佈判定命中率 (中近距離命中率約 25%~40%)
-    const hitChance = Math.max(0.12, 0.42 - dist * 0.008);
+    // 隨距離與散佈判定命中率 (蹲下時命中率略高)
+    const baseHitRate = this.isCrouching ? 0.42 : 0.32;
+    const hitChance = Math.max(0.12, baseHitRate - dist * 0.007);
     if (Math.random() < hitChance) {
       if (this.onShootPlayer) {
-        const damage = Math.round(10 + Math.random() * 10); // 單發 10~20 傷害
+        const damage = Math.round(11 + Math.random() * 11); // 單發 11~22 傷害
         this.onShootPlayer(this, damage);
       }
     }

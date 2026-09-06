@@ -8,6 +8,8 @@ import { ParticleSystem } from '../graphics/ParticleSystem.js';
 import { WeaponInventory } from '../combat/WeaponInventory.js';
 import { AIBot } from '../combat/AIBot.js';
 import { HUD } from '../ui/HUD.js';
+import { AudioManager } from '../audio/AudioManager.js';
+import { GrenadeSystem } from '../combat/GrenadeSystem.js';
 
 export class Game {
   constructor(canvas, uiContainer) {
@@ -31,39 +33,50 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // 2. 雙相機系統
+    // 2. 音效系統 (Web Audio API 合成音效)
+    this.audioManager = new AudioManager();
+
+    // 3. 雙相機系統
     this.dualCamera = new DualCamera();
 
-    // 3. 場景管理器 (包含沙盒對戰地圖與光影)
+    // 4. 場景管理器 (包含沙盒對戰地圖與光影)
     this.sceneManager = new SceneManager();
 
-    // 4. 八叉樹物理碰撞系統
+    // 5. 八叉樹物理碰撞系統
     this.worldCollision = new WorldCollision();
     this.worldCollision.buildFromMeshGroup(this.sceneManager.getCollisionGroup());
 
-    // 5. 角色控制器 (Capsule 碰撞 + CS 手感)
+    // 6. 角色控制器 (Capsule 碰撞 + CS 手感)
     this.player = new PlayerController(
       this.dualCamera.worldCamera,
       this.canvas,
       this.worldCollision
     );
 
-    // 6. 特效系統 (打牆火星、血液噴濺、彈孔貼圖、曳光線)
+    // 7. 特效系統 (打牆火星、血液噴濺、彈孔貼圖、曳光線、手榴彈爆炸、閃光彈與小刀刻痕)
     this.particleSystem = new ParticleSystem(this.sceneManager.scene);
 
-    // 7. 第一人稱持槍模型 (ViewModel)
+    // 8. 投擲物物理系統 (HE Grenade 與 Flashbang)
+    this.grenadeSystem = new GrenadeSystem(
+      this.sceneManager.scene,
+      this.worldCollision,
+      this.particleSystem,
+      this.audioManager
+    );
+
+    // 9. 第一人稱持槍持刀模型 (ViewModel)
     this.weaponView = new WeaponView(this.dualCamera.viewmodelScene);
 
-    // 8. 射線求交器
+    // 10. 射線求交器
     this.raycaster = new THREE.Raycaster();
 
-    // 9. HUD 介面 (包含擊殺推播、血量護甲、受傷泛紅與陣亡倒數)
+    // 11. HUD 介面 (包含擊殺推播、血量護甲、受傷泛紅、致盲全白覆蓋與陣亡倒數)
     this.hud = new HUD(this.uiContainer, {
       onStartSinglePlayer: () => this.lockPointer(),
       onOpenMultiplayer: () => this.lockPointer()
     });
 
-    // 10. 敵方電腦戰鬥機器人 (AI Bots)
+    // 12. 敵方電腦戰鬥機器人 (AI Bots)
     const botOptions = {
       worldCollision: this.worldCollision,
       particleSystem: this.particleSystem,
@@ -81,9 +94,21 @@ export class Game {
       new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-38, 0, -26), botOptions) // B 區防守
     ];
 
-    // 11. 武器背包管理器
+    // 13. 武器背包管理器 (支援 1~5 槽位、小刀揮砍重刺與戰術投擲物)
     this.inventory = new WeaponInventory({
-      onShoot: (weapon) => this.handleShoot(weapon),
+      onShoot: (weapon) => {
+        if (weapon.type === 'melee') {
+          this.handleKnifeAttack(weapon, false);
+        } else {
+          this.handleShoot(weapon);
+        }
+      },
+      onHeavyStab: (weapon) => {
+        this.handleKnifeAttack(weapon, true);
+      },
+      onThrowGrenade: (weapon) => {
+        this.handleThrowGrenade(weapon);
+      },
       onWeaponChange: (weapon) => {
         this.weaponView.setWeapon(weapon.id);
         this.hud.updateAmmo(weapon);
@@ -148,6 +173,11 @@ export class Game {
 
   handleShoot(weapon) {
     if (this.player.isDead) return;
+
+    // 播放武器開火音效 (AK-47 / Deagle)
+    if (this.audioManager) {
+      this.audioManager.playGunshot(weapon.id);
+    }
 
     const currentSpeed = Math.hypot(this.player.velocity.x, this.player.velocity.z);
     const spread = weapon.calculateSpread(currentSpeed, this.player.onGround);
@@ -228,6 +258,108 @@ export class Game {
     }
   }
 
+  /**
+   * 處理小刀真實近戰攻擊 (左鍵輕揮 Slash / 右鍵重刺 Stab，支援 CS 背刺一刀擊殺)
+   */
+  handleKnifeAttack(weapon, isHeavy = false) {
+    if (this.player.isDead) return;
+
+    // 1. 第一人稱持刀揮砍/重刺動畫
+    if (isHeavy) {
+      this.weaponView.triggerKnifeStab();
+    } else {
+      this.weaponView.triggerKnifeSlash();
+    }
+
+    // 播放小刀破空風聲
+    if (this.audioManager) {
+      this.audioManager.playKnifeSlash(isHeavy);
+    }
+
+    // 2. 近戰射線檢測 (有效攻擊距離 2.3 公尺)
+    const maxRange = weapon.range || 2.3;
+    const ray = this.player.getShootRay(0);
+    this.raycaster.set(ray.origin, ray.direction);
+
+    const allBotHitboxes = [];
+    for (const bot of this.bots) {
+      if (!bot.isDead) {
+        allBotHitboxes.push(...bot.getHitboxes());
+      }
+    }
+
+    const botIntersects = this.raycaster.intersectObjects(allBotHitboxes, false);
+    const wallHit = this.worldCollision.rayIntersect(ray);
+
+    let hitBot = null;
+    if (botIntersects.length > 0 && botIntersects[0].distance <= maxRange) {
+      if (!wallHit || botIntersects[0].distance < wallHit.distance) {
+        hitBot = botIntersects[0];
+      }
+    }
+
+    if (hitBot) {
+      const bot = hitBot.object.userData.bot;
+      const part = hitBot.object.userData.part;
+
+      // 經典 CS 背刺判定：玩家視角方向與敵人面朝方向之夾角
+      const botFwd = new THREE.Vector3(0, 0, 1).applyQuaternion(bot.group.quaternion);
+      const camDir = new THREE.Vector3();
+      this.player.camera.getWorldDirection(camDir);
+      const isBackstab = camDir.dot(botFwd) > 0.4;
+
+      let baseDmg = isHeavy ? (weapon.heavyDamage || 65) : (weapon.damage || 35);
+      if (isBackstab) {
+        baseDmg = isHeavy ? 130 : 75; // 重刀背刺 130 點致命傷害！
+      }
+
+      const res = bot.takeDamage(baseDmg, part);
+
+      // 播放肉體被割裂音效
+      if (this.audioManager) {
+        this.audioManager.playKnifeHit(true);
+      }
+
+      // 生成噴血粒子
+      this.particleSystem.createBloodEffect(hitBot.point);
+
+      if (res) {
+        this.hud.showHitmarker(isBackstab || res.isHeadshot, res.damage);
+      }
+    } else if (wallHit && wallHit.distance <= maxRange) {
+      // 砍在牆面：火星、金屬碰撞清脆音與刻痕貼圖
+      const hitPt = wallHit.point || wallHit.position;
+      const hitNorm = wallHit.normal || new THREE.Vector3(0, 1, 0);
+
+      if (this.audioManager) {
+        this.audioManager.playKnifeHit(false);
+      }
+      this.particleSystem.createKnifeSlashEffect(hitPt, hitNorm);
+    }
+  }
+
+  /**
+   * 處理戰術投擲物投擲 (4 鍵高爆手榴彈 HE Grenade / 5 鍵閃光彈 Flashbang)
+   */
+  handleThrowGrenade(weapon) {
+    if (this.player.isDead) return;
+
+    // 1. 第一人稱持手甩出動畫
+    this.weaponView.triggerThrow();
+
+    // 2. 計算投擲起點 (相機前方 0.35m、略偏右下)
+    const origin = this.player.camera.position.clone();
+    const fwd = new THREE.Vector3();
+    this.player.camera.getWorldDirection(fwd);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.player.camera.quaternion);
+    const down = new THREE.Vector3(0, -1, 0).applyQuaternion(this.player.camera.quaternion);
+    origin.addScaledVector(fwd, 0.35).addScaledVector(right, 0.12).addScaledVector(down, 0.1);
+
+    // 3. 帶入玩家當前移動速度慣性
+    const playerVel = this.player.velocity.clone();
+    this.grenadeSystem.throwGrenade(weapon.id, origin, fwd, playerVel);
+  }
+
   onWindowResize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -256,6 +388,11 @@ export class Game {
 
     // 更新粒子與特效
     this.particleSystem.update(delta);
+
+    // 更新戰術投擲物物理運動、反彈與引爆
+    if (this.grenadeSystem) {
+      this.grenadeSystem.update(delta, this.player, this.bots, this.hud);
+    }
 
     // 更新電腦戰鬥機器人 (巡邏、開火射擊、走位與重生)
     const playerPos = this.player.getPosition();

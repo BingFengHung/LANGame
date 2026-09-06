@@ -88,17 +88,17 @@ export class HUD {
         <!-- 按鍵說明 -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; font-size: 0.85rem; color: #cbd5e0; background: rgba(0,0,0,0.35); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
           <div><b style="color: #63b3ed;">[W / A / S / D]</b> 移動與急停</div>
-          <div><b style="color: #63b3ed;">[滑鼠左鍵]</b> 開火射擊</div>
+          <div><b style="color: #63b3ed;">[左鍵]</b> 開火 / 揮刀 / 投擲</div>
+          <div><b style="color: #63b3ed;">[1 / 2 / 3]</b> 步槍 / 手槍 / 小刀</div>
+          <div><b style="color: #63b3ed;">[右鍵]</b> 小刀重刺 (背刺致命)</div>
+          <div><b style="color: #63b3ed;">[4 / 5]</b> 高爆手榴彈 / 閃光彈</div>
           <div><b style="color: #63b3ed;">[空白鍵 Space]</b> 跳躍</div>
-          <div><b style="color: #63b3ed;">[R]</b> 換彈匣</div>
-          <div><b style="color: #63b3ed;">[1 / 2 / 3] 或 滾輪</b> 切換武器</div>
-          <div><b style="color: #63b3ed;">[Shift]</b> 慢走 / <b style="color: #63b3ed;">[Ctrl/C]</b> 蹲下</div>
-          <div><b style="color: #63b3ed;">[滑鼠轉向]</b> 旋轉視角</div>
-          <div><b style="color: #63b3ed;">[ESC]</b> 釋放滑鼠</div>
+          <div><b style="color: #63b3ed;">[Shift]</b> 慢走 / <b style="color: #63b3ed;">[Ctrl/C]</b> 蹲下壓槍</div>
+          <div><b style="color: #63b3ed;">[R]</b> 裝填彈匣 / <b style="color: #63b3ed;">[ESC]</b> 暫停</div>
         </div>
 
         <div style="margin-top: 14px; font-size: 0.82rem; color: #48bb78; font-weight: bold; letter-spacing: 0.5px;">
-          ✓ 最新版本 v0.2.2 • 安全基地掩體與 4 名電腦 Bot 對抗已啟用
+          ✓ 最新版本 v0.3.0 • 戰術投擲物、真實近戰小刀與 CS 擬真敵軍壓槍對抗已就緒
         </div>
       </div>
     `;
@@ -204,6 +204,23 @@ export class HUD {
       pointer-events: none;
     `;
     this.hudWrap.appendChild(this.damageVignette);
+
+    // 閃光彈致盲全螢幕純白覆蓋層 (Flashbang Whiteout Overlay)
+    this.flashOverlay = document.createElement('div');
+    this.flashOverlay.id = 'hud-flash-overlay';
+    this.flashOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 85;
+      transition: opacity 0.05s ease;
+    `;
+    this.hudWrap.appendChild(this.flashOverlay);
 
     // 準星 Hitmarker (受擊命中 X 叉叉)
     this.hitmarker = document.createElement('div');
@@ -418,6 +435,42 @@ export class HUD {
     }
   }
 
+  /**
+   * 觸發閃光彈致盲全白效果與平滑退白
+   * @param {number} intensity 致盲強度 (0.0 ~ 1.0)
+   */
+  triggerFlashbang(intensity = 1.0) {
+    if (!this.flashOverlay) return;
+
+    // 清除先前的退白計時
+    if (this.flashFadeInterval) {
+      clearInterval(this.flashFadeInterval);
+      this.flashFadeInterval = null;
+    }
+
+    let currentOpacity = Math.min(1.0, Math.max(0.1, intensity));
+    this.flashOverlay.style.opacity = currentOpacity;
+
+    // 經典 CS 閃光彈衰減曲線：先維持全白 0.8s，再緩慢衰減
+    const totalDuration = intensity > 0.6 ? 3200 : 1800;
+    const startTime = performance.now();
+
+    this.flashFadeInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      if (elapsed >= totalDuration) {
+        this.flashOverlay.style.opacity = '0';
+        clearInterval(this.flashFadeInterval);
+        this.flashFadeInterval = null;
+        return;
+      }
+
+      // 非線性平滑衰減 (漸漸看得見物體輪廓)
+      const progress = elapsed / totalDuration;
+      const decay = Math.pow(1.0 - progress, 1.6);
+      this.flashOverlay.style.opacity = (currentOpacity * decay).toFixed(3);
+    }, 40);
+  }
+
   updateAmmo(weapon) {
     const nameEl = document.getElementById('hud-weapon-name');
     const clipEl = document.getElementById('hud-ammo-clip');
@@ -428,9 +481,20 @@ export class HUD {
     if (nameEl) nameEl.textContent = weapon.name;
 
     if (weapon.type === 'melee') {
-      if (clipEl) clipEl.textContent = '—';
-      if (reserveEl) reserveEl.style.display = 'none';
+      if (clipEl) clipEl.textContent = '近戰';
+      if (dividerEl) dividerEl.style.display = 'inline';
+      if (reserveEl) {
+        reserveEl.style.display = 'inline';
+        reserveEl.textContent = '左:揮砍 | 右:重刺';
+      }
+      if (reloadHint) reloadHint.style.display = 'none';
+    } else if (weapon.type === 'grenade') {
+      if (clipEl) clipEl.textContent = `剩餘 ${weapon.currentClip}`;
       if (dividerEl) dividerEl.style.display = 'none';
+      if (reserveEl) {
+        reserveEl.style.display = 'inline';
+        reserveEl.textContent = '枚';
+      }
       if (reloadHint) reloadHint.style.display = 'none';
     } else {
       if (reserveEl) reserveEl.style.display = 'inline';

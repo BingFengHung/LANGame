@@ -22,6 +22,11 @@ export class WeaponView {
     this.weaponModels = {};
     this.currentWeaponId = null;
 
+    // 小刀與投擲物專屬動畫計時器
+    this.knifeAnimType = null; // 'slash' | 'stab'
+    this.knifeAnimProgress = 1.0;
+    this.throwAnimProgress = 1.0;
+
     // 槍口火花
     this.muzzleFlash = null;
     this.flashTimer = 0;
@@ -35,6 +40,8 @@ export class WeaponView {
     this.weaponModels['ak47'] = this.buildAK47();
     this.weaponModels['deagle'] = this.buildDeagle();
     this.weaponModels['knife'] = this.buildKnife();
+    this.weaponModels['he_grenade'] = this.buildHEGrenade();
+    this.weaponModels['flashbang'] = this.buildFlashbang();
 
     // 先全部隱藏
     for (const key in this.weaponModels) {
@@ -121,25 +128,104 @@ export class WeaponView {
 
   buildKnife() {
     const group = new THREE.Group();
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x3a424e, roughness: 0.25, metalness: 0.9 });
-    const handleMat = new THREE.MeshStandardMaterial({ color: 0x22262a, roughness: 0.7 });
+    const bladeSteel = new THREE.MeshStandardMaterial({ color: 0xdce2ec, roughness: 0.18, metalness: 0.95 });
+    const spineMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.5, metalness: 0.8 });
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x11161d, roughness: 0.85 });
 
-    // 刀刃
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.04, 0.22), bladeMat);
-    blade.position.set(0, 0.02, -0.12);
+    // 刀刃主體 (雙面研磨鋒刃)
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.046, 0.22), bladeSteel);
+    blade.position.set(0, 0.02, -0.11);
     group.add(blade);
 
-    // 刀柄
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.035, 0.14), handleMat);
-    handle.position.set(0, -0.01, 0.05);
+    // 刀背鋸齒脊線
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.012, 0.18), spineMat);
+    spine.position.set(0, 0.045, -0.1);
+    group.add(spine);
+
+    // 刀尖弧度斜角
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 4), bladeSteel);
+    tip.rotation.x = -Math.PI / 2;
+    tip.rotation.y = Math.PI / 4;
+    tip.position.set(0, 0.02, -0.24);
+    group.add(tip);
+
+    // 戰術格鬥握把 (帶有手指凹槽)
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.038, 0.13), handleMat);
+    handle.position.set(0, -0.005, 0.065);
     group.add(handle);
 
-    // 護手
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.06, 0.015), handleMat);
-    guard.position.set(0, 0.01, -0.02);
+    // 護手盤 (Crossguard)
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.065, 0.014), spineMat);
+    guard.position.set(0, 0.015, -0.005);
     group.add(guard);
 
-    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.23);
+    // 初始拿刀角度 (反握/微斜朝前)
+    group.rotation.set(0.1, -0.2, 0.25);
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.26);
+    return group;
+  }
+
+  buildHEGrenade() {
+    const group = new THREE.Group();
+    const greenMat = new THREE.MeshStandardMaterial({ color: 0x274323, roughness: 0.65 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb5903b, roughness: 0.35, metalness: 0.85 });
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.95 });
+
+    // 手榴彈蛋體 (鳳梨菠蘿紋理切角)
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.042, 0.11, 10), greenMat);
+    group.add(body);
+
+    // 黃色戰術標識圈
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.039, 0.039, 0.012, 10), brassMat);
+    ring.position.y = 0.03;
+    group.add(ring);
+
+    // 引信保險把柄 (Spoon / Safety Lever)
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.08, 0.012), brassMat);
+    lever.position.set(0.025, 0.02, 0);
+    group.add(lever);
+
+    // 保險拉環 (Pull Ring)
+    const pullRing = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.003, 6, 12), pinMat);
+    pullRing.position.set(-0.022, 0.07, 0);
+    pullRing.rotation.y = Math.PI / 2;
+    group.add(pullRing);
+
+    group.rotation.set(-0.2, 0.1, 0.1);
+    return group;
+  }
+
+  buildFlashbang() {
+    const group = new THREE.Group();
+    const aluminumMat = new THREE.MeshStandardMaterial({ color: 0xa0aec0, roughness: 0.25, metalness: 0.85 });
+    const blueBandMat = new THREE.MeshStandardMaterial({ color: 0x2b6cb0, roughness: 0.4 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb5903b, roughness: 0.35, metalness: 0.85 });
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.95 });
+
+    // 鋁合金圓筒本體
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.13, 12), aluminumMat);
+    group.add(body);
+
+    // 經典 CS 閃光彈藍色辨識環 (兩道)
+    const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.0345, 0.0345, 0.018, 12), blueBandMat);
+    band1.position.y = 0.025;
+    group.add(band1);
+
+    const band2 = new THREE.Mesh(new THREE.CylinderGeometry(0.0345, 0.0345, 0.018, 12), blueBandMat);
+    band2.position.y = -0.025;
+    group.add(band2);
+
+    // 保險栓與拉環
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.085, 0.01), brassMat);
+    lever.position.set(0.022, 0.03, 0);
+    group.add(lever);
+
+    const pullRing = new THREE.Mesh(new THREE.TorusGeometry(0.011, 0.0025, 6, 12), pinMat);
+    pullRing.position.set(-0.02, 0.075, 0);
+    pullRing.rotation.y = Math.PI / 2;
+    group.add(pullRing);
+
+    group.rotation.set(-0.2, 0.1, 0.1);
     return group;
   }
 
@@ -200,11 +286,34 @@ export class WeaponView {
     this.kickRotation.x = 0.09 * (recoilAmount / 0.02);
 
     // 顯示槍口火花
-    if (this.currentWeaponId !== 'knife') {
+    if (this.currentWeaponId !== 'knife' && this.currentWeaponId !== 'he_grenade' && this.currentWeaponId !== 'flashbang') {
       this.flashGroup.visible = true;
       this.flashGroup.rotation.z = Math.random() * Math.PI * 2;
       this.flashTimer = 0.045; // 45ms
     }
+  }
+
+  /**
+   * 觸發小刀輕揮 (橫劃弧線)
+   */
+  triggerKnifeSlash() {
+    this.knifeAnimType = 'slash';
+    this.knifeAnimProgress = 0.0;
+  }
+
+  /**
+   * 觸發小刀強力刺擊 (向前猛刺)
+   */
+  triggerKnifeStab() {
+    this.knifeAnimType = 'stab';
+    this.knifeAnimProgress = 0.0;
+  }
+
+  /**
+   * 觸發手榴彈投擲動作
+   */
+  triggerThrow() {
+    this.throwAnimProgress = 0.0;
   }
 
   /**
@@ -240,11 +349,48 @@ export class WeaponView {
     this.kickOffset.z += (0 - this.kickOffset.z) * Math.min(delta * 22, 1);
     this.kickRotation.x += (0 - this.kickRotation.x) * Math.min(delta * 22, 1);
 
-    // 4. 滑鼠轉向慣性阻尼衰減 (快速回彈至中立)
+    // 4. 小刀揮擊 / 刺擊動畫推進
+    let knifeOffsetX = 0, knifeOffsetY = 0, knifeOffsetZ = 0;
+    let knifeRotX = 0, knifeRotY = 0, knifeRotZ = 0;
+
+    if (this.knifeAnimProgress < 1.0) {
+      if (this.knifeAnimType === 'slash') {
+        this.knifeAnimProgress += delta * 4.8;
+        const p = Math.min(1.0, this.knifeAnimProgress);
+        const arc = Math.sin(p * Math.PI);
+        knifeOffsetX = -arc * 0.22;
+        knifeOffsetY = arc * 0.08;
+        knifeOffsetZ = -arc * 0.16;
+        knifeRotZ = -arc * 1.35;
+        knifeRotY = arc * 0.85;
+      } else if (this.knifeAnimType === 'stab') {
+        this.knifeAnimProgress += delta * 3.4;
+        const p = Math.min(1.0, this.knifeAnimProgress);
+        const plunge = Math.sin(p * Math.PI);
+        knifeOffsetZ = -plunge * 0.28;
+        knifeOffsetY = plunge * 0.03;
+        knifeRotX = plunge * 0.35;
+      }
+      if (this.knifeAnimProgress >= 1.0) {
+        this.knifeAnimType = null;
+      }
+    }
+
+    // 5. 投擲物投出動畫
+    let throwOffsetY = 0, throwOffsetZ = 0;
+    if (this.throwAnimProgress < 1.0) {
+      this.throwAnimProgress += delta * 3.8;
+      const p = Math.min(1.0, this.throwAnimProgress);
+      const throwCurve = Math.sin(p * Math.PI);
+      throwOffsetY = -throwCurve * 0.18;
+      throwOffsetZ = -throwCurve * 0.24;
+    }
+
+    // 6. 滑鼠轉向慣性阻尼衰減 (快速回彈至中立)
     this.mouseSwayX = (this.mouseSwayX || 0) * Math.max(0, 1 - delta * 18);
     this.mouseSwayY = (this.mouseSwayY || 0) * Math.max(0, 1 - delta * 18);
 
-    // 5. 待機呼吸晃動與行走擺動
+    // 7. 待機呼吸晃動與行走擺動
     const time = performance.now() * 0.002;
     let swayX = Math.sin(time) * 0.0015;
     let swayY = Math.cos(time * 1.5) * 0.0015;
@@ -254,11 +400,12 @@ export class WeaponView {
       swayY += Math.sin(time * 8) * 0.005 * Math.min(currentSpeed / 5, 1.2);
     }
 
-    this.gunPivot.position.x = this.defaultPos.x + swayX + this.mouseSwayX;
-    this.gunPivot.position.y = this.defaultPos.y + swayY + drawOffsetY + this.mouseSwayY;
-    this.gunPivot.position.z = this.defaultPos.z + this.kickOffset.z;
+    this.gunPivot.position.x = this.defaultPos.x + swayX + this.mouseSwayX + knifeOffsetX;
+    this.gunPivot.position.y = this.defaultPos.y + swayY + drawOffsetY + this.mouseSwayY + knifeOffsetY + throwOffsetY;
+    this.gunPivot.position.z = this.defaultPos.z + this.kickOffset.z + knifeOffsetZ + throwOffsetZ;
 
-    this.gunPivot.rotation.x = this.kickRotation.x + this.mouseSwayY * 1.5;
-    this.gunPivot.rotation.y = this.mouseSwayX * 1.8;
+    this.gunPivot.rotation.x = this.kickRotation.x + this.mouseSwayY * 1.5 + knifeRotX;
+    this.gunPivot.rotation.y = this.mouseSwayX * 1.8 + knifeRotY;
+    this.gunPivot.rotation.z = knifeRotZ;
   }
 }

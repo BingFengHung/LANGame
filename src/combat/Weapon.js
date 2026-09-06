@@ -29,20 +29,31 @@ export class Weapon {
 
   canShoot(now) {
     if (this.isReloading) return false;
+    if (this.type === 'grenade') {
+      return this.currentClip > 0 && (now - this.lastFireTime) >= this.fireRate;
+    }
     if (this.type !== 'melee' && this.currentClip <= 0) return false;
     return (now - this.lastFireTime) >= this.fireRate;
   }
 
+  canHeavyStab(now) {
+    if (this.type !== 'melee') return false;
+    const heavyRate = this.heavyFireRate || 0.8;
+    return (now - this.lastFireTime) >= heavyRate;
+  }
+
   shoot(now) {
     this.lastFireTime = now;
-    if (this.type !== 'melee') {
+    if (this.type === 'grenade') {
+      this.currentClip = Math.max(0, this.currentClip - 1);
+    } else if (this.type !== 'melee') {
       this.currentClip = Math.max(0, this.currentClip - 1);
     }
     this.continuousShots++;
   }
 
   canReload() {
-    if (this.type === 'melee') return false;
+    if (this.type === 'melee' || this.type === 'grenade') return false;
     if (this.isReloading) return false;
     if (this.currentClip >= this.clipSize) return false;
     return this.currentReserve > 0;
@@ -93,7 +104,7 @@ export class Weapon {
 }
 
 /**
- * 預設 CS 經典三把武器配置
+ * 預設 CS 經典武器配置 (含步槍、手槍、戰術小刀、手榴彈與閃光彈)
  */
 export const WEAPON_CONFIGS = {
   AK47: {
@@ -134,9 +145,12 @@ export const WEAPON_CONFIGS = {
     id: 'knife',
     name: 'Tactical Knife',
     type: 'melee',
-    damage: 45, // 輕刀 45，背刺可乘倍
+    range: 2.3, // 近戰攻擊距離 (公尺)
+    damage: 35, // 輕揮揮砍 (左鍵)
+    heavyDamage: 65, // 重刀強刺 (右鍵，背刺致命 100+ 一擊殺)
     headshotMultiplier: 1.5,
-    fireRate: 0.4,
+    fireRate: 0.38, // 輕刀間隔
+    heavyFireRate: 0.8, // 重刀間隔
     automatic: false,
     clipSize: 0,
     maxReserve: 0,
@@ -144,7 +158,37 @@ export const WEAPON_CONFIGS = {
     baseSpread: 0,
     moveSpreadMultiplier: 1.0,
     airSpreadMultiplier: 1.0,
-    recoilVertical: 0.005,
+    recoilVertical: 0,
+    recoilHorizontal: 0
+  },
+  HE_GRENADE: {
+    id: 'he_grenade',
+    name: 'HE Grenade',
+    type: 'grenade',
+    fireRate: 0.8,
+    automatic: false,
+    clipSize: 1, // 可攜帶 1 顆高爆手榴彈
+    maxReserve: 0,
+    reloadTime: 0,
+    baseSpread: 0,
+    moveSpreadMultiplier: 1.0,
+    airSpreadMultiplier: 1.0,
+    recoilVertical: 0,
+    recoilHorizontal: 0
+  },
+  FLASHBANG: {
+    id: 'flashbang',
+    name: 'Flashbang',
+    type: 'grenade',
+    fireRate: 0.8,
+    automatic: false,
+    clipSize: 2, // 可攜帶 2 顆閃光彈
+    maxReserve: 0,
+    reloadTime: 0,
+    baseSpread: 0,
+    moveSpreadMultiplier: 1.0,
+    airSpreadMultiplier: 1.0,
+    recoilVertical: 0,
     recoilHorizontal: 0
   }
 };
