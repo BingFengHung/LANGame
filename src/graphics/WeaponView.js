@@ -31,9 +31,91 @@ export class WeaponView {
     this.muzzleFlash = null;
     this.flashTimer = 0;
 
+    // 特警第一人稱戰術手臂與手套材質 (SWAT Tactical Combat Sleeves & Carbon Knuckle Gloves)
+    this.armMats = {
+      sleeve: new THREE.MeshStandardMaterial({ color: 0x222631, roughness: 0.88, metalness: 0.08 }), // 深灰海軍藍特警服
+      cuff: new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.8, metalness: 0.2 }),     // 手腕魔鬼氈袖口
+      glove: new THREE.MeshStandardMaterial({ color: 0x18191e, roughness: 0.68, metalness: 0.12 }),  // 黑色防滑山羊皮
+      knuckle: new THREE.MeshStandardMaterial({ color: 0x090a0d, roughness: 0.32, metalness: 0.45 }),// 碳纖維防護硬殼
+      skin: new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.8 })                        // 戰術手套內襯深色
+    };
+
     this.initModels();
     this.initMuzzleFlash();
     this.setWeapon('ak47');
+  }
+
+  /**
+   * 建立特警第一人稱戰術手臂與手套模型 (手臂、手腕袖口、手掌、碳纖維指節護板與手指關節)
+   */
+  createArmModel(isLeft = false, pose = 'rifle') {
+    const armGroup = new THREE.Group();
+
+    // 1. 小臂與特警防撕裂戰鬥服袖子 (Forearm & Sleeve)
+    const forearmGeo = new THREE.CylinderGeometry(0.042, 0.052, 0.32, 12);
+    const forearm = new THREE.Mesh(forearmGeo, this.armMats.sleeve);
+    forearm.castShadow = true;
+    forearm.receiveShadow = true;
+    armGroup.add(forearm);
+
+    // 袖口皺褶與手腕魔鬼氈收束帶 (Wrist Cuff Strap)
+    const cuffGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.032, 12);
+    const cuff = new THREE.Mesh(cuffGeo, this.armMats.cuff);
+    cuff.position.set(0, 0.15, 0);
+    armGroup.add(cuff);
+
+    // 魔鬼氈調節扣 (Buckle)
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.018, 0.006), this.armMats.knuckle);
+    buckle.position.set(isLeft ? -0.045 : 0.045, 0.15, 0);
+    armGroup.add(buckle);
+
+    // 2. 手掌主體 (Tactical Glove Palm)
+    const handGroup = new THREE.Group();
+    handGroup.position.set(0, 0.19, 0);
+
+    const palmGeo = new THREE.BoxGeometry(0.052, 0.04, 0.056);
+    const palm = new THREE.Mesh(palmGeo, this.armMats.glove);
+    palm.castShadow = true;
+    handGroup.add(palm);
+
+    // 碳纖維指節硬殼防護板 (Carbon Knuckle Armor Protector)
+    const knuckleArmor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.048, 0.014, 0.026),
+      this.armMats.knuckle
+    );
+    knuckleArmor.position.set(0, 0.018, 0.016);
+    knuckleArmor.rotation.x = -0.15;
+    handGroup.add(knuckleArmor);
+
+    // 4 個碳纖維小散熱孔凸點
+    for (let i = -1.5; i <= 1.5; i += 1) {
+      const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.005, 6), this.armMats.cuff);
+      vent.position.set(i * 0.012, 0.024, 0.018);
+      handGroup.add(vent);
+    }
+
+    // 3. 手指幾何體 (Fingers)
+    // 拇指 (Thumb)
+    const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.018, 0.038), this.armMats.glove);
+    thumb.position.set(isLeft ? 0.028 : -0.028, 0.005, 0.015);
+    thumb.rotation.y = isLeft ? 0.4 : -0.4;
+    thumb.rotation.x = -0.2;
+    handGroup.add(thumb);
+
+    // 食指 (Trigger / Pointer Finger)
+    const indexFinger = new THREE.Mesh(new THREE.BoxGeometry(0.013, 0.015, 0.044), this.armMats.glove);
+    indexFinger.position.set(isLeft ? 0.016 : -0.016, 0.01, 0.036);
+    handGroup.add(indexFinger);
+
+    // 其餘三指 (中指、無名指、小指)
+    const fingers = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.032, 0.038), this.armMats.glove);
+    fingers.position.set(isLeft ? -0.01 : 0.01, -0.005, 0.035);
+    fingers.rotation.x = 0.25; // 彎曲握拳感
+    handGroup.add(fingers);
+
+    armGroup.add(handGroup);
+    armGroup.userData.handGroup = handGroup;
+    return armGroup;
   }
 
   initModels() {
@@ -219,6 +301,19 @@ export class WeaponView {
     grip.rotation.x = 0.38;
     group.add(grip);
 
+    // 8. 經典 CS 第一人稱特警雙臂持槍 (Tactical Dual Arms)
+    // 右手臂 (握持握把、食指搭扳機)
+    const rightArm = this.createArmModel(false, 'rifle_right');
+    rightArm.position.set(0.045, -0.24, 0.16);
+    rightArm.rotation.set(-0.75, 0.15, -0.2);
+    group.add(rightArm);
+
+    // 左手臂 (從左下方伸出托住下護木)
+    const leftArm = this.createArmModel(true, 'rifle_left');
+    leftArm.position.set(-0.08, -0.22, -0.12);
+    leftArm.rotation.set(-0.65, -0.35, 0.4);
+    group.add(leftArm);
+
     // 槍口發光定位點
     group.userData.muzzleOffset = new THREE.Vector3(0, 0.012, -0.52);
     return group;
@@ -372,6 +467,17 @@ export class WeaponView {
 
     group.add(gripGroup);
 
+    // 經典 CS 特警雙手持握沙漠之鷹 (Weaver Tactical Grip)
+    const rightArm = this.createArmModel(false, 'pistol_right');
+    rightArm.position.set(0.04, -0.22, 0.12);
+    rightArm.rotation.set(-0.7, 0.12, -0.15);
+    group.add(rightArm);
+
+    const leftArm = this.createArmModel(true, 'pistol_left');
+    leftArm.position.set(-0.04, -0.23, 0.1);
+    leftArm.rotation.set(-0.68, -0.15, 0.2);
+    group.add(leftArm);
+
     group.userData.muzzleOffset = new THREE.Vector3(0, 0.034, -0.22);
     return group;
   }
@@ -463,6 +569,17 @@ export class WeaponView {
 
     group.add(handleGroup);
 
+    // 特警戰術小刀持刀手臂 (右手握刀柄、左手微曲備戰)
+    const rightArm = this.createArmModel(false, 'knife_right');
+    rightArm.position.set(0.03, -0.22, 0.16);
+    rightArm.rotation.set(-0.7, 0.2, -0.1);
+    group.add(rightArm);
+
+    const leftArm = this.createArmModel(true, 'knife_left');
+    leftArm.position.set(-0.16, -0.26, 0.12);
+    leftArm.rotation.set(-0.8, -0.4, 0.5);
+    group.add(leftArm);
+
     // 初始拿刀角度 (反握/微斜朝前)
     group.rotation.set(0.1, -0.2, 0.25);
     group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.28);
@@ -494,6 +611,17 @@ export class WeaponView {
     pullRing.position.set(-0.022, 0.07, 0);
     pullRing.rotation.y = Math.PI / 2;
     group.add(pullRing);
+
+    // 手榴彈持握雙臂 (右手握彈體、左手拉環)
+    const rightArm = this.createArmModel(false, 'grenade_right');
+    rightArm.position.set(0.04, -0.22, 0.08);
+    rightArm.rotation.set(-0.7, 0.15, -0.15);
+    group.add(rightArm);
+
+    const leftArm = this.createArmModel(true, 'grenade_left');
+    leftArm.position.set(-0.08, -0.2, 0.04);
+    leftArm.rotation.set(-0.65, -0.3, 0.35);
+    group.add(leftArm);
 
     group.rotation.set(-0.2, 0.1, 0.1);
     return group;
@@ -529,6 +657,17 @@ export class WeaponView {
     pullRing.rotation.y = Math.PI / 2;
     group.add(pullRing);
 
+    // 閃光彈持握雙臂
+    const rightArm = this.createArmModel(false, 'grenade_right');
+    rightArm.position.set(0.04, -0.22, 0.08);
+    rightArm.rotation.set(-0.7, 0.15, -0.15);
+    group.add(rightArm);
+
+    const leftArm = this.createArmModel(true, 'grenade_left');
+    leftArm.position.set(-0.08, -0.2, 0.04);
+    leftArm.rotation.set(-0.65, -0.3, 0.35);
+    group.add(leftArm);
+
     group.rotation.set(-0.2, 0.1, 0.1);
     return group;
   }
@@ -562,6 +701,17 @@ export class WeaponView {
     pullRing.position.set(-0.02, 0.075, 0);
     pullRing.rotation.y = Math.PI / 2;
     group.add(pullRing);
+
+    // 煙霧彈持握雙臂
+    const rightArm = this.createArmModel(false, 'grenade_right');
+    rightArm.position.set(0.04, -0.22, 0.08);
+    rightArm.rotation.set(-0.7, 0.15, -0.15);
+    group.add(rightArm);
+
+    const leftArm = this.createArmModel(true, 'grenade_left');
+    leftArm.position.set(-0.08, -0.2, 0.04);
+    leftArm.rotation.set(-0.65, -0.3, 0.35);
+    group.add(leftArm);
 
     group.rotation.set(-0.2, 0.1, 0.1);
     return group;

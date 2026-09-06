@@ -257,50 +257,166 @@ export class HUD {
     `;
     this.hudWrap.appendChild(this.hitmarker);
 
-    // 左上角目前模式標籤
-    const modeBadge = document.createElement('div');
-    modeBadge.id = 'hud-mode-badge';
-    modeBadge.style.cssText = `
+    // ==========================================================
+    // 1. 左上角：經典 CS 動態圓形小地圖雷達 (CS Mini-Radar)
+    // ==========================================================
+    this.radarWrap = document.createElement('div');
+    this.radarWrap.id = 'hud-radar-wrap';
+    this.radarWrap.style.cssText = `
       position: absolute;
       top: 20px;
-      left: 24px;
-      padding: 6px 14px;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      font-size: 13px;
-      color: #ecc94b;
-      letter-spacing: 1px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
     `;
-    modeBadge.textContent = '⚔️ 單人電腦對抗戰 (4 BOTS ACTIVE)';
-    this.hudWrap.appendChild(modeBadge);
 
-    // 左下角血量與護甲
+    this.radarCanvas = document.createElement('canvas');
+    this.radarCanvas.id = 'cs-radar';
+    this.radarCanvas.width = 136;
+    this.radarCanvas.height = 136;
+    this.radarCanvas.style.cssText = `
+      border-radius: 50%;
+      background: rgba(12, 16, 22, 0.82);
+      border: 2px solid rgba(72, 187, 120, 0.75);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 255, 65, 0.15);
+    `;
+    this.radarCtx = this.radarCanvas.getContext('2d');
+    this.radarWrap.appendChild(this.radarCanvas);
+
+    // 雷達下方地圖名稱與當前區域標籤
+    this.locationLabel = document.createElement('div');
+    this.locationLabel.style.cssText = `
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: bold;
+      color: #9ae6b4;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      border: 1px solid rgba(72, 187, 120, 0.3);
+    `;
+    this.locationLabel.textContent = 'DE_DUST2 • CT BASE';
+    this.radarWrap.appendChild(this.locationLabel);
+    this.hudWrap.appendChild(this.radarWrap);
+
+    // ==========================================================
+    // 2. 頂部中央：經典 CS 隊伍比分欄與回合時鐘 (Match Top Bar)
+    // ==========================================================
+    this.matchTopBar = document.createElement('div');
+    this.matchTopBar.id = 'hud-match-topbar';
+    this.matchTopBar.style.cssText = `
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      background: rgba(15, 20, 26, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 6px 18px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      font-family: monospace;
+      gap: 16px;
+    `;
+
+    this.matchTopBar.innerHTML = `
+      <!-- CT 陣營 -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">🛡️</span>
+        <span style="font-size: 14px; font-weight: bold; color: #63b3ed; letter-spacing: 1px;">CT</span>
+        <span id="hud-ct-score" style="font-size: 22px; font-weight: bold; color: #ffffff;">0</span>
+      </div>
+
+      <!-- 回合電子時鐘 -->
+      <div style="
+        background: rgba(0, 0, 0, 0.5);
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(72, 187, 120, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      ">
+        <span style="font-size: 13px; color: #48bb78;">⏱️</span>
+        <span id="hud-round-timer" style="font-size: 18px; font-weight: bold; color: #ecc94b; letter-spacing: 1px;">01:45</span>
+      </div>
+
+      <!-- T 陣營與 4 名 Bot 狀態點 -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="hud-t-score" style="font-size: 22px; font-weight: bold; color: #ffffff;">0</span>
+        <span style="font-size: 14px; font-weight: bold; color: #fc8181; letter-spacing: 1px;">T</span>
+        <span style="font-size: 18px;">💣</span>
+        <!-- 4 個敵方 Bot 存活頭像小圖示 -->
+        <div id="hud-t-bots" style="display: flex; gap: 4px; margin-left: 6px;">
+          <span class="bot-icon" style="font-size: 14px; color: #f56565;">👤</span>
+          <span class="bot-icon" style="font-size: 14px; color: #f56565;">👤</span>
+          <span class="bot-icon" style="font-size: 14px; color: #f56565;">👤</span>
+          <span class="bot-icon" style="font-size: 14px; color: #f56565;">👤</span>
+        </div>
+      </div>
+    `;
+    this.hudWrap.appendChild(this.matchTopBar);
+
+    // ==========================================================
+    // 3. 左下角：經典 CS 生命、護甲與綠色金錢計數器
+    // ==========================================================
     const statusPanel = document.createElement('div');
     statusPanel.style.cssText = `
       position: absolute;
       bottom: 24px;
       left: 30px;
       display: flex;
-      gap: 24px;
+      flex-direction: column;
+      gap: 8px;
       font-family: monospace;
-      font-size: 26px;
-      font-weight: bold;
-      text-shadow: 0 0 6px rgba(0,0,0,0.9);
+      text-shadow: 0 0 8px rgba(0,0,0,0.95);
     `;
-    statusPanel.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px; color: #fc8181;">
-        <span style="font-size: 16px; opacity: 0.8;">+ HP</span>
+
+    // 金錢計數器 ($16,000)
+    this.money = 16000;
+    this.moneyEl = document.createElement('div');
+    this.moneyEl.id = 'hud-money';
+    this.moneyEl.style.cssText = `
+      font-size: 24px;
+      font-weight: bold;
+      color: #48bb78;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 1px;
+    `;
+    this.moneyEl.innerHTML = `<span>$</span><span id="hud-money-val">16,000</span>`;
+    statusPanel.appendChild(this.moneyEl);
+
+    // HP 與 ARMOR
+    const healthRow = document.createElement('div');
+    healthRow.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 32px;
+      font-weight: bold;
+    `;
+    healthRow.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px; color: #48bb78;">
+        <span style="font-size: 20px; opacity: 0.9;">+</span>
         <span id="hud-hp">100</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; color: #63b3ed;">
-        <span style="font-size: 16px; opacity: 0.8;">🛡 ARMOR</span>
+        <span style="font-size: 20px; opacity: 0.9;">🛡</span>
         <span id="hud-armor">100</span>
       </div>
     `;
+    statusPanel.appendChild(healthRow);
     this.hudWrap.appendChild(statusPanel);
 
-    // 右下角武器名稱與彈藥
+    // ==========================================================
+    // 4. 右下角：武器名稱、大號彈藥卡片與換彈提示
+    // ==========================================================
     this.ammoPanel = document.createElement('div');
     this.ammoPanel.style.cssText = `
       position: absolute;
@@ -308,16 +424,16 @@ export class HUD {
       right: 30px;
       text-align: right;
       font-family: monospace;
-      text-shadow: 0 0 6px rgba(0,0,0,0.9);
+      text-shadow: 0 0 8px rgba(0,0,0,0.95);
     `;
     this.ammoPanel.innerHTML = `
-      <div id="hud-weapon-name" style="font-size: 18px; color: #e2e8f0; margin-bottom: 4px; letter-spacing: 1px;">AK-47</div>
-      <div style="font-size: 32px; font-weight: bold; color: #f6e05e;">
+      <div id="hud-weapon-name" style="font-size: 19px; font-weight: bold; color: #e2e8f0; margin-bottom: 4px; letter-spacing: 1.5px;">AK-47</div>
+      <div style="font-size: 38px; font-weight: bold; color: #f6e05e;">
         <span id="hud-ammo-clip">30</span>
-        <span id="hud-ammo-divider" style="font-size: 20px; opacity: 0.6;"> / </span>
-        <span id="hud-ammo-reserve" style="font-size: 22px; opacity: 0.85;">90</span>
+        <span id="hud-ammo-divider" style="font-size: 22px; opacity: 0.6;"> / </span>
+        <span id="hud-ammo-reserve" style="font-size: 24px; opacity: 0.85;">90</span>
       </div>
-      <div id="hud-reload-hint" style="font-size: 13px; color: #fc8181; display: none; margin-top: 2px;">RELOADING...</div>
+      <div id="hud-reload-hint" style="font-size: 13px; color: #fc8181; display: none; margin-top: 2px; font-weight: bold;">[R] RELOAD</div>
     `;
     this.hudWrap.appendChild(this.ammoPanel);
 
@@ -541,5 +657,248 @@ export class HUD {
 
   updateSpread(spreadPx) {
     this.crosshair.setSpread(spreadPx);
+  }
+
+  /**
+   * 經典 CS 動態圓形小地圖雷達即時渲染 (Radar Render Loop)
+   * @param {THREE.Vector3} playerPos 玩家當前世界坐標
+   * @param {number} playerYaw 玩家當前視角水平旋轉角度
+   * @param {Array} bots 4 名電腦戰鬥機器人
+   * @param {Array} activeSmokes 正在場上起煙的煙霧彈雲團列表
+   */
+  updateRadar(playerPos, playerYaw, bots = [], activeSmokes = []) {
+    if (!this.radarCtx || !playerPos) return;
+
+    const ctx = this.radarCtx;
+    const size = 136;
+    const center = size / 2;
+    const radarScale = 1.15; // 1 公尺約 1.15 像素 (雷達可視半徑約 58 公尺)
+
+    ctx.clearRect(0, 0, size, size);
+
+    // 1. 繪製雷達同心測距圓環與十字刻度
+    ctx.strokeStyle = 'rgba(72, 187, 120, 0.22)';
+    ctx.lineWidth = 1;
+
+    // 25m 與 50m 測距環
+    ctx.beginPath();
+    ctx.arc(center, center, 25 * radarScale, 0, Math.PI * 2);
+    ctx.arc(center, center, 48 * radarScale, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 十字刻度軸
+    ctx.beginPath();
+    ctx.moveTo(center, 8);
+    ctx.lineTo(center, size - 8);
+    ctx.moveTo(8, center);
+    ctx.lineTo(size - 8, center);
+    ctx.stroke();
+
+    // 2. 繪製經典包點方位標誌 (A 點與 B 點)
+    const sites = [
+      { name: 'A', x: 40, z: -37 },
+      { name: 'B', x: -40, z: -26 }
+    ];
+
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (const site of sites) {
+      const dx = (site.x - playerPos.x) * radarScale;
+      const dz = (site.z - playerPos.z) * radarScale;
+      const dist = Math.hypot(dx, dz);
+      const maxR = center - 12;
+
+      let rx = center + dx;
+      let rz = center + dz;
+      if (dist > maxR) {
+        // 若超出雷達邊界，吸附在雷達邊緣指示方位
+        rx = center + (dx / dist) * maxR;
+        rz = center + (dz / dist) * maxR;
+      }
+
+      ctx.fillStyle = '#e53e3e';
+      ctx.fillText(`[${site.name}]`, rx, rz);
+    }
+
+    // 3. 繪製起煙中的煙霧彈 (灰白色半透明雲霧覆蓋區)
+    if (activeSmokes && activeSmokes.length > 0) {
+      for (const smoke of activeSmokes) {
+        const dx = (smoke.position.x - playerPos.x) * radarScale;
+        const dz = (smoke.position.z - playerPos.z) * radarScale;
+        const rx = center + dx;
+        const rz = center + dz;
+
+        ctx.fillStyle = 'rgba(180, 190, 205, 0.45)';
+        ctx.beginPath();
+        ctx.arc(rx, rz, 8 * radarScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(230, 235, 245, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // 4. 繪製敵方 Bot (鮮紅實心圓點，死亡為灰紅 X 叉)
+    for (const bot of bots) {
+      const bPos = bot.position || (bot.group ? bot.group.position : null);
+      if (!bPos) continue;
+
+      const dx = (bPos.x - playerPos.x) * radarScale;
+      const dz = (bPos.z - playerPos.z) * radarScale;
+      const dist = Math.hypot(dx, dz);
+      const maxR = center - 8;
+
+      let rx = center + dx;
+      let rz = center + dz;
+      if (dist > maxR) {
+        rx = center + (dx / dist) * maxR;
+        rz = center + (dz / dist) * maxR;
+      }
+
+      if (bot.isDead) {
+        // 陣亡標記：暗紅 ×
+        ctx.strokeStyle = 'rgba(245, 101, 101, 0.55)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(rx - 3, rz - 3);
+        ctx.lineTo(rx + 3, rz + 3);
+        ctx.moveTo(rx + 3, rz - 3);
+        ctx.lineTo(rx - 3, rz + 3);
+        ctx.stroke();
+      } else {
+        // 存活敵人：鮮紅實心圓點 + 外圈高光
+        ctx.fillStyle = '#f56565';
+        ctx.beginPath();
+        ctx.arc(rx, rz, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#fff5f5';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // 5. 繪製中心自身位置與視野方向 (綠色實心三角箭頭)
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(-playerYaw); // 根據玩家自身朝向旋轉箭頭
+
+    ctx.fillStyle = '#00ff41';
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(4, 5);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(-4, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // 6. 更新左上角當前所處戰術地圖區域標籤
+    this.updateLocationLabel(playerPos);
+  }
+
+  /**
+   * 根據坐標判斷經典 CS Dust2 區域名稱
+   */
+  updateLocationLabel(pos) {
+    if (!this.locationLabel) return;
+
+    let loc = 'COURTYARD';
+    if (pos.z > 32) {
+      loc = 'CT SPAWN';
+    } else if (pos.x > 18 && pos.z < -16) {
+      loc = 'BOMBSITE A';
+    } else if (pos.x < -18 && pos.z < -8) {
+      loc = 'BOMBSITE B';
+    } else if (Math.abs(pos.x) <= 15 && pos.z >= -10 && pos.z <= 26) {
+      loc = 'MID DOORS';
+    } else if (pos.z < -45) {
+      loc = 'T BASE';
+    }
+
+    this.locationLabel.textContent = `DE_DUST2 • ${loc}`;
+  }
+
+  /**
+   * 更新頂部比分與 1:45 回合電子倒數時計
+   */
+  updateMatchInfo(remainingSeconds, ctScore, tScore, bots = []) {
+    const timerEl = document.getElementById('hud-round-timer');
+    if (timerEl) {
+      const s = Math.max(0, Math.floor(remainingSeconds));
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      timerEl.textContent = `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}`;
+
+      // 剩餘時間不足 20 秒時時鐘變紅急促警示
+      if (s <= 20) {
+        timerEl.style.color = '#fc8181';
+      } else {
+        timerEl.style.color = '#ecc94b';
+      }
+    }
+
+    const ctScoreEl = document.getElementById('hud-ct-score');
+    if (ctScoreEl) ctScoreEl.textContent = ctScore;
+
+    const tScoreEl = document.getElementById('hud-t-score');
+    if (tScoreEl) tScoreEl.textContent = tScore;
+
+    // 更新 4 名敵方 Bot 的存活頭像
+    const botsWrap = document.getElementById('hud-t-bots');
+    if (botsWrap && bots.length > 0) {
+      const botIcons = botsWrap.querySelectorAll('.bot-icon');
+      bots.forEach((b, idx) => {
+        if (botIcons[idx]) {
+          if (b.isDead) {
+            botIcons[idx].textContent = '💀';
+            botIcons[idx].style.color = '#718096';
+            botIcons[idx].style.opacity = '0.4';
+          } else {
+            botIcons[idx].textContent = '👤';
+            botIcons[idx].style.color = '#f56565';
+            botIcons[idx].style.opacity = '1';
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * 增加金錢並播放浮動金色數字跳躍動畫 (+$300 擊殺獎勵)
+   */
+  addMoney(amount = 300) {
+    this.money = (this.money || 16000) + amount;
+    const valEl = document.getElementById('hud-money-val');
+    if (valEl) {
+      valEl.textContent = this.money.toLocaleString();
+    }
+
+    // 飄出 +$300 綠色浮動文字
+    const floatEl = document.createElement('div');
+    floatEl.style.cssText = `
+      position: absolute;
+      bottom: 60px;
+      left: 120px;
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 20px;
+      color: #48bb78;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+      z-index: 100;
+    `;
+    floatEl.textContent = `+$${amount}`;
+    this.hudWrap.appendChild(floatEl);
+
+    requestAnimationFrame(() => {
+      floatEl.style.transform = 'translateY(-35px)';
+      floatEl.style.opacity = '0';
+    });
+
+    setTimeout(() => floatEl.remove(), 800);
   }
 }

@@ -84,6 +84,7 @@ export class Game {
       onKilled: (bot, isHeadshot) => {
         const weaponName = this.inventory.getCurrentWeapon().name;
         this.hud.addKill('You', bot.name, weaponName, isHeadshot);
+        this.hud.addMoney(300); // 經典 CS 擊殺敵人獎勵 +$300！
       }
     };
 
@@ -93,6 +94,12 @@ export class Game {
       new AIBot(this.sceneManager.scene, 'Viper', new THREE.Vector3(40, 3.2, -22), botOptions), // A 高台狙擊
       new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-38, 0, -26), botOptions) // B 區防守
     ];
+
+    // 13. 經典 CS 回合比賽狀態 (Match Round State)
+    this.roundTime = 115; // 01:55
+    this.ctScore = 0;
+    this.tScore = 0;
+    this.roundResetting = false;
 
     // 13. 武器背包管理器 (支援 1~5 槽位、小刀揮砍重刺與戰術投擲物)
     this.inventory = new WeaponInventory({
@@ -415,6 +422,40 @@ export class Game {
     const currentWeapon = this.inventory.getCurrentWeapon();
     const currentSpread = currentWeapon.calculateSpread(currentSpeed, this.player.onGround);
     this.hud.updateSpread(8 + currentSpread * 600);
+
+    // 經典 CS 回合倒數與勝負進程
+    this.roundTime -= delta;
+    if (this.roundTime <= 0) {
+      this.tScore++;
+      this.roundTime = 115;
+      for (const bot of this.bots) {
+        bot.respawn();
+      }
+    }
+
+    const allBotsDead = this.bots.length > 0 && this.bots.every(b => b.isDead);
+    if (allBotsDead && !this.roundResetting) {
+      this.roundResetting = true;
+      this.ctScore++;
+      this.hud.addKill('CT', 'TERRORISTS', 'ROUND WON', false);
+      setTimeout(() => {
+        this.roundTime = 115;
+        for (const bot of this.bots) {
+          bot.respawn();
+        }
+        this.roundResetting = false;
+      }, 2500);
+    }
+
+    // 計算視角水平朝向 (Player Yaw)
+    const camDir = new THREE.Vector3();
+    this.player.camera.getWorldDirection(camDir);
+    const playerYaw = Math.atan2(camDir.x, camDir.z);
+
+    // 即時更新 CS 圓形動態小地圖雷達與頂部比賽狀態
+    const activeSmokes = this.grenadeSystem ? this.grenadeSystem.activeSmokes : [];
+    this.hud.updateRadar(playerPos, playerYaw, this.bots, activeSmokes);
+    this.hud.updateMatchInfo(this.roundTime, this.ctScore, this.tScore, this.bots);
 
     // 雙相機雙通道渲染 (杜絕貼牆穿模)
     this.dualCamera.render(this.renderer, this.sceneManager.scene);

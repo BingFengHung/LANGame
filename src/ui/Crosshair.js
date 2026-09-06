@@ -23,29 +23,30 @@ export class Crosshair {
       justify-content: center;
     `;
 
-    // 經典 CS 綠色準星條 (#00ff41)
+    // 經典 CS 競技高對比純綠色準星 (#00ff00) 帶 1px 黑色外框
     const lineStyle = `
       position: absolute;
-      background: #00ff41;
-      box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+      background: #00ff00;
+      border: 1px solid rgba(0, 0, 0, 0.85);
+      box-sizing: border-box;
     `;
 
     // 上
     this.topLine = document.createElement('div');
-    this.topLine.style.cssText = `${lineStyle}; width: 2px; height: 8px; transform: translateY(-${this.spread}px);`;
+    this.topLine.style.cssText = `${lineStyle}; width: 3px; height: 9px; transform: translateY(-${this.spread}px);`;
     // 下
     this.bottomLine = document.createElement('div');
-    this.bottomLine.style.cssText = `${lineStyle}; width: 2px; height: 8px; transform: translateY(${this.spread}px);`;
+    this.bottomLine.style.cssText = `${lineStyle}; width: 3px; height: 9px; transform: translateY(${this.spread}px);`;
     // 左
     this.leftLine = document.createElement('div');
-    this.leftLine.style.cssText = `${lineStyle}; height: 2px; width: 8px; transform: translateX(-${this.spread}px);`;
+    this.leftLine.style.cssText = `${lineStyle}; height: 3px; width: 9px; transform: translateX(-${this.spread}px);`;
     // 右
     this.rightLine = document.createElement('div');
-    this.rightLine.style.cssText = `${lineStyle}; height: 2px; width: 8px; transform: translateX(${this.spread}px);`;
+    this.rightLine.style.cssText = `${lineStyle}; height: 3px; width: 9px; transform: translateX(${this.spread}px);`;
 
-    // 中心微小紅點/綠點
+    // 中心微小精確瞄準點
     this.centerDot = document.createElement('div');
-    this.centerDot.style.cssText = `${lineStyle}; width: 2px; height: 2px; border-radius: 50%;`;
+    this.centerDot.style.cssText = `${lineStyle}; width: 3px; height: 3px; border-radius: 1px;`;
 
     wrap.appendChild(this.topLine);
     wrap.appendChild(this.bottomLine);
