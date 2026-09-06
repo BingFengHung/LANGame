@@ -53,116 +53,419 @@ export class WeaponView {
 
   buildAK47() {
     const group = new THREE.Group();
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f242b, roughness: 0.35, metalness: 0.8 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a4b27, roughness: 0.7, metalness: 0.1 });
+    // 工業級槍械材質
+    const receiverMat = new THREE.MeshStandardMaterial({ color: 0x1c2127, roughness: 0.38, metalness: 0.85 }); // 衝壓冷鋼機匣
+    const barrelSteelMat = new THREE.MeshStandardMaterial({ color: 0x222831, roughness: 0.28, metalness: 0.9 }); // 槍管高碳鋼
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x7c3a1e, roughness: 0.45, metalness: 0.05 }); // 俄羅斯紅棕胡桃層壓木
+    const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x12151a, roughness: 0.5, metalness: 0.75 }); // 黑色小零件
 
-    // 機匣
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.07, 0.32), metalMat);
-    group.add(body);
+    // 1. 衝壓機匣 (Receiver)
+    const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.068, 0.31), receiverMat);
+    group.add(receiver);
 
-    // 槍管與槍口
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 8), metalMat);
+    // 機匣頂部圓弧防塵蓋 (Dust Cover with Ribs)
+    const dustCover = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.28, 12, 1, false, 0, Math.PI), receiverMat);
+    dustCover.rotation.z = Math.PI / 2;
+    dustCover.rotation.y = Math.PI / 2;
+    dustCover.position.set(0, 0.034, -0.01);
+    group.add(dustCover);
+
+    // 防塵蓋衝壓加強筋 (Ribs)
+    for (let r = -2; r <= 2; r++) {
+      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.0245, 0.002, 6, 12, Math.PI), receiverMat);
+      rib.rotation.y = Math.PI / 2;
+      rib.position.set(0, 0.034, r * 0.045);
+      group.add(rib);
+    }
+
+    // 右側外露金屬拉機柄 (Charging Handle)
+    const boltHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.007, 0.028, 8), barrelSteelMat);
+    boltHandle.rotation.z = Math.PI / 2;
+    boltHandle.position.set(0.035, 0.018, -0.04);
+    group.add(boltHandle);
+
+    // 快慢機保險撥片 (Fire Selector)
+    const selector = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.016, 0.11), darkMetalMat);
+    selector.position.set(0.024, -0.005, 0.04);
+    selector.rotation.z = 0.15;
+    group.add(selector);
+
+    // 2. 槍管總成與導氣系統 (Barrel & Gas System)
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.32, 10), barrelSteelMat);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.02, -0.25);
+    barrel.position.set(0, 0.012, -0.31);
     group.add(barrel);
 
-    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.04, 8), metalMat);
+    // 導氣管 (Gas Tube)
+    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 10), barrelSteelMat);
+    gasTube.rotation.x = Math.PI / 2;
+    gasTube.position.set(0, 0.034, -0.22);
+    group.add(gasTube);
+
+    // 導氣箍 (Gas Block)
+    const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.048, 0.032), darkMetalMat);
+    gasBlock.position.set(0, 0.024, -0.32);
+    group.add(gasBlock);
+
+    // 經典 AK 45度斜口槍口制退器 (Slant Muzzle Brake)
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.05, 10), barrelSteelMat);
     muzzle.rotation.x = Math.PI / 2;
-    muzzle.position.set(0, 0.02, -0.4);
+    muzzle.position.set(0, 0.012, -0.48);
+    // 斜切前端
+    const slantCut = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.04), barrelSteelMat);
+    slantCut.position.set(0, 0.022, -0.495);
+    slantCut.rotation.x = 0.5;
     group.add(muzzle);
 
-    // 護木
-    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.055, 0.16), woodMat);
-    handguard.position.set(0, 0.015, -0.15);
-    group.add(handguard);
+    // 前準星座與保護環 (Front Sight Block & Hood)
+    const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.045, 0.025), darkMetalMat);
+    frontSightBase.position.set(0, 0.032, -0.44);
+    group.add(frontSightBase);
 
-    // 彈匣
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.14, 0.065), metalMat);
-    mag.position.set(0, -0.07, -0.05);
-    mag.rotation.x = -0.25;
-    group.add(mag);
+    const sightHood = new THREE.Mesh(new THREE.TorusGeometry(0.011, 0.0025, 6, 12, Math.PI * 1.5), darkMetalMat);
+    sightHood.rotation.y = Math.PI / 2;
+    sightHood.rotation.x = Math.PI / 4;
+    sightHood.position.set(0, 0.055, -0.44);
+    group.add(sightHood);
 
-    // 槍托
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.09, 0.18), woodMat);
-    stock.position.set(0, -0.01, 0.22);
-    group.add(stock);
+    const sightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.014, 6), darkMetalMat);
+    sightPost.position.set(0, 0.052, -0.44);
+    group.add(sightPost);
 
-    // 握把
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.09, 0.045), woodMat);
-    grip.position.set(0, -0.07, 0.08);
-    grip.rotation.x = 0.35;
+    // 槍管下方通條 (Cleaning Rod)
+    const cleaningRod = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.28, 6), darkMetalMat);
+    cleaningRod.rotation.x = Math.PI / 2;
+    cleaningRod.position.set(0, -0.004, -0.31);
+    group.add(cleaningRod);
+
+    // 後照門表尺座 (Rear Tangent Leaf Sight)
+    const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.022, 0.065), darkMetalMat);
+    rearSightBase.position.set(0, 0.046, -0.13);
+    group.add(rearSightBase);
+
+    const rearSightLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.008, 0.05), darkMetalMat);
+    rearSightLeaf.position.set(0, 0.055, -0.13);
+    rearSightLeaf.rotation.x = -0.08;
+    group.add(rearSightLeaf);
+
+    // 3. 上下木質護木 (Laminated Wood Handguards)
+    // 上護木
+    const upperHandguard = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.155, 10, 1, false, 0, Math.PI), woodMat);
+    upperHandguard.rotation.z = Math.PI / 2;
+    upperHandguard.rotation.y = Math.PI / 2;
+    upperHandguard.position.set(0, 0.035, -0.22);
+    group.add(upperHandguard);
+
+    // 下護木 (帶有雙側抓握指槽凹線)
+    const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.046, 0.165), woodMat);
+    lowerHandguard.position.set(0, 0.004, -0.22);
+    group.add(lowerHandguard);
+
+    // 4. 經典 30 發弧形香蕉鋼製彈匣 (Banana Magazine)
+    const magGroup = new THREE.Group();
+    magGroup.position.set(0, -0.03, -0.05);
+
+    // 由 3 段微彎幾何拼接成真實香蕉弧度
+    for (let s = 0; s < 3; s++) {
+      const magSegment = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.07, 0.065), receiverMat);
+      magSegment.position.set(0, -s * 0.055, -s * 0.018);
+      magSegment.rotation.x = -0.24 - s * 0.08;
+      magGroup.add(magSegment);
+
+      // 彈匣外壁加強凸筋 (Ribs)
+      const magRib = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.006, 0.06), darkMetalMat);
+      magRib.position.copy(magSegment.position);
+      magRib.rotation.copy(magSegment.rotation);
+      magGroup.add(magRib);
+    }
+    group.add(magGroup);
+
+    // 彈匣釋放卡榫 (Magazine Catch)
+    const magCatch = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.022, 0.012), darkMetalMat);
+    magCatch.position.set(0, -0.038, -0.008);
+    magCatch.rotation.x = -0.3;
+    group.add(magCatch);
+
+    // 5. 彎曲扳機與護圈 (Trigger & Guard)
+    const triggerGuard = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.003, 6, 12, Math.PI), darkMetalMat);
+    triggerGuard.rotation.y = Math.PI / 2;
+    triggerGuard.position.set(0, -0.046, 0.035);
+    group.add(triggerGuard);
+
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.018, 0.008), barrelSteelMat);
+    trigger.position.set(0, -0.042, 0.032);
+    trigger.rotation.x = 0.35;
+    group.add(trigger);
+
+    // 6. 木質下斜槍托 (Wooden Buttstock with Buttplate)
+    const stockGroup = new THREE.Group();
+    stockGroup.position.set(0, -0.01, 0.15);
+
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.095, 0.2), woodMat);
+    stock.position.set(0, -0.02, 0.09);
+    stock.rotation.x = -0.14; // 經典下斜角度
+    stockGroup.add(stock);
+
+    // 金屬托底板 (Buttplate)
+    const buttplate = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.105, 0.014), darkMetalMat);
+    buttplate.position.set(0, -0.034, 0.19);
+    buttplate.rotation.x = -0.14;
+    stockGroup.add(buttplate);
+    group.add(stockGroup);
+
+    // 7. 電木/木質手槍形握把 (Pistol Grip)
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.11, 0.046), woodMat);
+    grip.position.set(0, -0.082, 0.088);
+    grip.rotation.x = 0.38;
     group.add(grip);
 
-    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.42);
+    // 槍口發光定位點
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.012, -0.52);
     return group;
   }
 
   buildDeagle() {
     const group = new THREE.Group();
-    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xd0d5dd, roughness: 0.2, metalness: 0.9 });
-    const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
+    // 沙漠之鷹經典拉絲銀鉻與黑色軍規部件材質
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.18,
+      metalness: 0.94
+    }); // 拋光不鏽鋼滑套
+    const darkSteelMat = new THREE.MeshStandardMaterial({
+      color: 0x1a202c,
+      roughness: 0.4,
+      metalness: 0.8
+    }); // 下機匣鍛造鋼
+    const gripRubberMat = new THREE.MeshStandardMaterial({
+      color: 0x111317,
+      roughness: 0.9
+    }); // 握把防滑硬橡膠
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xd69e2e,
+      roughness: 0.3,
+      metalness: 0.9
+    }); // 槍膛與握把金色老鷹圓章
 
-    // 滑套 (Slide)
-    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.22), chromeMat);
-    slide.position.set(0, 0.03, -0.05);
+    // 1. 經典三角形/階梯截面重型滑套 (Slide & Heavy Barrel Housing)
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.052, 0.24), chromeMat);
+    slide.position.set(0, 0.034, -0.06);
     group.add(slide);
 
-    // 下槍身與握把
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.04, 0.18), gripMat);
-    frame.position.set(0, 0, -0.04);
+    // 滑套頂部導軌階梯凸筋 (Top Step Rib)
+    const topRib = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.014, 0.23), chromeMat);
+    topRib.position.set(0, 0.062, -0.06);
+    group.add(topRib);
+
+    // 滑套前部經典斜切角 (Front Chamfered Muzzle)
+    const muzzleCap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.024, 0.03, 8), chromeMat);
+    muzzleCap.rotation.x = Math.PI / 2;
+    muzzleCap.position.set(0, 0.034, -0.19);
+    group.add(muzzleCap);
+
+    // 巨大的 .50 Action Express 口徑空心槍膛 (Muzzle Bore)
+    const boreOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.04, 12), darkSteelMat);
+    boreOuter.rotation.x = Math.PI / 2;
+    boreOuter.position.set(0, 0.034, -0.195);
+    group.add(boreOuter);
+
+    const boreHole = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.042, 12), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    boreHole.rotation.x = Math.PI / 2;
+    boreHole.position.set(0, 0.034, -0.196);
+    group.add(boreHole);
+
+    // 右側立體深陷拋殼窗 (Ejection Port)
+    const portCut = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.028, 0.075), darkSteelMat);
+    portCut.position.set(0.016, 0.042, -0.05);
+    group.add(portCut);
+
+    // 拋殼窗內部的金屬槍機 (Breech Block / Bolt)
+    const boltFace = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.07, 8), goldMat);
+    boltFace.rotation.x = Math.PI / 2;
+    boltFace.position.set(0.008, 0.038, -0.05);
+    group.add(boltFace);
+
+    // 滑套後方傾斜防滑排齒刻槽 (Slide Cocking Serrations)
+    for (let s = -2; s <= 2; s++) {
+      const serration = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.036, 0.005), darkSteelMat);
+      serration.position.set(0, 0.034, 0.025 + s * 0.011);
+      group.add(serration);
+    }
+
+    // 後方外露立體雙動擊錘 (Skeletonized Hammer)
+    const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.028, 0.02), darkSteelMat);
+    hammer.position.set(0, 0.045, 0.062);
+    hammer.rotation.x = -0.45; // 待擊發張開角度
+    group.add(hammer);
+
+    // 前準星柱 (Front Blade Sight)
+    const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.014, 0.018), darkSteelMat);
+    frontSight.position.set(0, 0.074, -0.17);
+    group.add(frontSight);
+
+    // 後缺口照門 (Rear Notch Sight)
+    const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.016, 0.018), darkSteelMat);
+    rearSight.position.set(0, 0.074, 0.05);
+    group.add(rearSight);
+
+    // 2. 下槍身與戰術導軌 (Lower Frame with Picatinny Rail)
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.036, 0.2), darkSteelMat);
+    frame.position.set(0, -0.004, -0.05);
     group.add(frame);
 
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.12, 0.055), gripMat);
-    grip.position.set(0, -0.07, 0.03);
-    grip.rotation.x = 0.25;
-    group.add(grip);
+    // 槍管下方戰術導軌槽 (Accessory Rail Grooves)
+    for (let g = 0; g < 3; g++) {
+      const groove = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.006, 0.008), darkSteelMat);
+      groove.position.set(0, -0.019, -0.11 - g * 0.022);
+      group.add(groove);
+    }
 
-    // 槍口
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.04, 8), chromeMat);
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.03, -0.17);
-    group.add(barrel);
+    // 空倉掛機桿 (Slide Stop)
+    const slideStop = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.01, 0.035), chromeMat);
+    slideStop.position.set(-0.022, 0.012, -0.02);
+    group.add(slideStop);
 
-    group.userData.muzzleOffset = new THREE.Vector3(0, 0.03, -0.19);
+    // 3. 人體工學扳機護弓與金屬扳機 (Trigger Guard & Curved Trigger)
+    const triggerGuard = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.0035, 6, 12, Math.PI * 0.95), darkSteelMat);
+    triggerGuard.rotation.y = Math.PI / 2;
+    triggerGuard.position.set(0, -0.03, -0.01);
+    group.add(triggerGuard);
+
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.022, 0.01), chromeMat);
+    trigger.position.set(0, -0.024, -0.01);
+    trigger.rotation.x = 0.38;
+    group.add(trigger);
+
+    // 4. 重裝握把與防滑護片 (Heavy Grip & Panels)
+    const gripGroup = new THREE.Group();
+    gripGroup.position.set(0, -0.08, 0.03);
+    gripGroup.rotation.x = 0.28; // 經典 18 度握持傾角
+
+    // 握把本體
+    const gripFrame = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.125, 0.062), darkSteelMat);
+    gripGroup.add(gripFrame);
+
+    // 左右兩側人體工學防滑橡膠護片 (Rubber Grip Panels)
+    const leftPanel = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.11, 0.054), gripRubberMat);
+    leftPanel.position.set(-0.02, 0, 0);
+    gripGroup.add(leftPanel);
+
+    const rightPanel = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.11, 0.054), gripRubberMat);
+    rightPanel.position.set(0.02, 0, 0);
+    gripGroup.add(rightPanel);
+
+    // 握把兩側鑲嵌金色老鷹圓形標誌 (Golden Eagle Medallion)
+    const leftLogo = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.002, 12), goldMat);
+    leftLogo.rotation.z = Math.PI / 2;
+    leftLogo.position.set(-0.024, 0.015, 0);
+    gripGroup.add(leftLogo);
+
+    const rightLogo = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.002, 12), goldMat);
+    rightLogo.rotation.z = Math.PI / 2;
+    rightLogo.position.set(0.024, 0.015, 0);
+    gripGroup.add(rightLogo);
+
+    // 彈匣底座 (Magazine Baseplate)
+    const magBase = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.012, 0.07), darkSteelMat);
+    magBase.position.set(0, -0.065, 0.004);
+    gripGroup.add(magBase);
+
+    group.add(gripGroup);
+
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.034, -0.22);
     return group;
   }
 
   buildKnife() {
     const group = new THREE.Group();
-    const bladeSteel = new THREE.MeshStandardMaterial({ color: 0xdce2ec, roughness: 0.18, metalness: 0.95 });
-    const spineMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.5, metalness: 0.8 });
-    const handleMat = new THREE.MeshStandardMaterial({ color: 0x11161d, roughness: 0.85 });
+    // 現代競技格鬥軍用戰術刺刀材質
+    const bladeMat = new THREE.MeshStandardMaterial({
+      color: 0xedf2f7,
+      roughness: 0.14,
+      metalness: 0.98
+    }); // 雙面手工研磨高碳鋼刀刃
+    const coatingMat = new THREE.MeshStandardMaterial({
+      color: 0x1a202c,
+      roughness: 0.5,
+      metalness: 0.8
+    }); // 黑色軍規抗反光塗層
+    const handleMat = new THREE.MeshStandardMaterial({
+      color: 0x171923,
+      roughness: 0.85
+    }); // G10 特種防滑格鬥握把
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xb7791f,
+      roughness: 0.35,
+      metalness: 0.9
+    }); // 握柄固定鉚釘
 
-    // 刀刃主體 (雙面研磨鋒刃)
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.046, 0.22), bladeSteel);
-    blade.position.set(0, 0.02, -0.11);
+    // 1. 刀刃主體 (Blade Body)
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.048, 0.23), bladeMat);
+    blade.position.set(0, 0.02, -0.115);
     group.add(blade);
 
-    // 刀背鋸齒脊線
-    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.012, 0.18), spineMat);
-    spine.position.set(0, 0.045, -0.1);
+    // 刀刃雙面血槽 (Fuller Groove)
+    const fuller = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.012, 0.15), coatingMat);
+    fuller.position.set(0, 0.026, -0.105);
+    group.add(fuller);
+
+    // 刀背鋸齒脊線 (Sawback Spine)
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.012, 0.19), coatingMat);
+    spine.position.set(0, 0.046, -0.095);
     group.add(spine);
 
-    // 刀尖弧度斜角
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 4), bladeSteel);
+    // 鋸齒齒痕 (Serration Teeth)
+    for (let t = 0; t < 6; t++) {
+      const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.011, 0.006, 0.012), coatingMat);
+      tooth.position.set(0, 0.052, -0.04 - t * 0.022);
+      tooth.rotation.x = -0.4;
+      group.add(tooth);
+    }
+
+    // 刀尖幾何 (Tanto / Drop Point Tip)
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.065, 4), bladeMat);
     tip.rotation.x = -Math.PI / 2;
     tip.rotation.y = Math.PI / 4;
-    tip.position.set(0, 0.02, -0.24);
+    tip.position.set(0, 0.02, -0.255);
     group.add(tip);
 
-    // 戰術格鬥握把 (帶有手指凹槽)
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.038, 0.13), handleMat);
-    handle.position.set(0, -0.005, 0.065);
-    group.add(handle);
-
-    // 護手盤 (Crossguard)
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.065, 0.014), spineMat);
-    guard.position.set(0, 0.015, -0.005);
+    // 2. 戰術十字護手盤 (Crossguard)
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.075, 0.016), coatingMat);
+    guard.position.set(0, 0.016, -0.004);
     group.add(guard);
+
+    // 3. 人體工學戰術握把 (G10 Ergonomic Grip with Finger Grooves)
+    const handleGroup = new THREE.Group();
+    handleGroup.position.set(0, -0.004, 0.07);
+
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.042, 0.135), handleMat);
+    handleGroup.add(handle);
+
+    // 手指凹槽 (Finger Grooves)
+    for (let f = -1; f <= 1; f++) {
+      const groove = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 8), handleMat);
+      groove.rotation.z = Math.PI / 2;
+      groove.position.set(0, -0.022, f * 0.036);
+      handleGroup.add(groove);
+
+      // 握柄黃銅固定螺栓 (Brass Screws)
+      const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.032, 8), brassMat);
+      screw.rotation.z = Math.PI / 2;
+      screw.position.set(0, 0.002, f * 0.036);
+      handleGroup.add(screw);
+    }
+
+    // 握柄尾部金屬擊破錐 (Steel Skull Crusher Pommel)
+    const pommel = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.024, 4), coatingMat);
+    pommel.rotation.x = Math.PI / 2;
+    pommel.position.set(0, 0, 0.075);
+    handleGroup.add(pommel);
+
+    group.add(handleGroup);
 
     // 初始拿刀角度 (反握/微斜朝前)
     group.rotation.set(0.1, -0.2, 0.25);
-    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.26);
+    group.userData.muzzleOffset = new THREE.Vector3(0, 0.02, -0.28);
     return group;
   }
 

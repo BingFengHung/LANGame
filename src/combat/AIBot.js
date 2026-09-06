@@ -225,41 +225,59 @@ export class AIBot {
     this.leftArm.rotation.set(-1.3, -0.4, 0.65);
     this.armsPivot.add(this.leftArm);
 
-    // 5. 步槍模型 (AK-47 風格)
+    // 5. 步槍模型 (擬真 AK-47 標誌剪影)
     this.weaponGroup = new THREE.Group();
     this.weaponGroup.position.set(0.16, -0.05, 0.42);
     this.weaponGroup.rotation.set(0, -0.08, 0);
 
-    // 槍身機匣
-    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.38), this.gunMat);
+    // 鋼製衝壓機匣
+    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.085, 0.36), this.gunMat);
     this.weaponGroup.add(gunBody);
 
-    // 槍管
-    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.32, 6), this.gunMat);
+    // 金屬槍管
+    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.38, 8), this.gunMat);
     gunBarrel.rotation.x = Math.PI / 2;
-    gunBarrel.position.set(0, 0.02, 0.28);
+    gunBarrel.position.set(0, 0.018, 0.32);
     this.weaponGroup.add(gunBarrel);
 
-    // 木質護木
-    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.08, 0.18), this.woodMat);
-    handguard.position.set(0, 0.01, 0.14);
+    // 導氣管 (Gas Tube)
+    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.22, 8), this.gunMat);
+    gasTube.rotation.x = Math.PI / 2;
+    gasTube.position.set(0, 0.038, 0.24);
+    this.weaponGroup.add(gasTube);
+
+    // 前準星座 (Front Sight Post)
+    const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.042, 0.02), this.gunMat);
+    frontSight.position.set(0, 0.04, 0.46);
+    this.weaponGroup.add(frontSight);
+
+    // 經典斜口槍口制退器 (Slant Muzzle)
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.045, 8), this.gunMat);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, 0.018, 0.51);
+    this.weaponGroup.add(muzzle);
+
+    // 俄式紅棕木質上下護木
+    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.075, 0.18), this.woodMat);
+    handguard.position.set(0, 0.015, 0.14);
     this.weaponGroup.add(handguard);
 
-    // 弧形彈匣
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), this.gunMat);
-    mag.position.set(0, -0.1, 0.04);
-    mag.rotation.x = 0.25;
+    // 經典香蕉弧度鋼製彈匣 (帶加強筋)
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.17, 0.075), this.gunMat);
+    mag.position.set(0, -0.11, 0.06);
+    mag.rotation.x = 0.28;
     this.weaponGroup.add(mag);
 
-    // 木質槍托
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.1, 0.2), this.woodMat);
-    stock.position.set(0, -0.01, -0.24);
+    // 木質下斜槍托
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.095, 0.22), this.woodMat);
+    stock.position.set(0, -0.015, -0.25);
+    stock.rotation.x = -0.12;
     this.weaponGroup.add(stock);
 
     this.armsPivot.add(this.weaponGroup);
 
     // 槍口射擊座標 (世界相對起點)
-    this.muzzleLocal = new THREE.Vector3(0.16, 1.32, 0.86);
+    this.muzzleLocal = new THREE.Vector3(0.16, 1.32, 0.96);
 
     // 槍火光 (星形平面)
     const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true });
