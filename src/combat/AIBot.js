@@ -1009,48 +1009,53 @@ export class AIBot {
     ifak.position.set(0.09, -0.25, -0.11);
     this.upperBody.add(ifak);
 
-    // 實心結實特戰頸部 (由胸腔 y=0.14 向上延伸貫通至 y=0.30，與下巴完全緊鎖相接，徹底消除漂浮斷頭！)
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.066, 0.16, 12), this.balaclavaMat);
+    // 實心特戰針織頭套頸部 (健美解剖學微錐形，流暢連接鎖骨至下顎)
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.058, 0.14, 14), this.balaclavaMat);
     neck.position.set(0, 0.22, 0.01);
     neck.castShadow = true;
     this.upperBody.add(neck);
 
-    // 後頸斜方肌 (Trapezius) 自然肌肉斜切過渡，消除後腦勺與背心鋼板之空隙
-    const trapezius = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.08), this.jacketMat);
+    // 後頸斜方肌 (Trapezius) 自然過渡，消除後腦勺與背心鋼板之空隙
+    const trapezius = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.07), this.jacketMat);
     trapezius.position.set(0, 0.19, -0.04);
     trapezius.rotation.x = 0.22;
     this.upperBody.add(trapezius);
 
-    // 戰術 Shemagh 圍巾厚實領圈 (管徑加厚緊密包覆脖子與下巴，100% 杜絕任何透光空隙)
-    const scarfCollar = new THREE.Mesh(new THREE.TorusGeometry(0.086, 0.038, 10, 20), this.scarfMat);
-    scarfCollar.rotation.x = Math.PI / 2;
-    scarfCollar.position.set(0, 0.205, 0.02);
-    this.upperBody.add(scarfCollar);
+    // 軍規戰術作戰服緊湊立領 (Mandarin Combat Collar - 告別粗大甜甜圈與方塊，乾淨俐落)
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.072, 0.042, 14), this.jacketMat);
+    collar.position.set(0, 0.185, 0.01);
+    this.upperBody.add(collar);
 
-    // 胸前圍巾立體結與自然垂墜布褶 (緊貼前胸 JPC 防彈鋼板頂部)
-    const scarfFold = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.045), this.scarfMat);
-    scarfFold.position.set(0, 0.15, 0.11);
-    scarfFold.rotation.x = 0.15;
-    this.upperBody.add(scarfFold);
+    // 領口黑色戰術滾邊 (Tactical Trim)
+    const collarTrim = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.008, 6, 16), this.beltMat);
+    collarTrim.rotation.x = Math.PI / 2;
+    collarTrim.position.set(0, 0.205, 0.01);
+    this.upperBody.add(collarTrim);
   }
 
   // ==========================================================
   // 模組 3: 完美 1:8 黃金頭身比頭部模組 (Head Module)
-  // 徹底根除「大頭黑球」，直立前置面部五官、殺氣雙眼、低斷面頭盔與風鏡
+  // 徹底根除怪異甜甜圈與方塊遮擋，頭身比例英挺協調、剛毅下顎輪廓與特勤頭盔
   // ==========================================================
   buildHeadModule() {
     this.headGroup = new THREE.Group();
-    this.headGroup.position.set(0, 0.28, 0.025); // 關鍵修正：下巴深陷圍巾領口與實心頸部，頭身無縫一體！
+    this.headGroup.position.set(0, 0.32, 0.025); // 黃金頭部高度：下顎清晰分明，頸部自然有力！
     this.upperBody.add(this.headGroup);
 
-    // 特戰人體工學頭部 (高度精確縮減至 0.19m，徹底符合八頭身比例！)
+    // 特戰人體工學頭部 (黃金頭身比比例)
     const headGeo = new THREE.SphereGeometry(0.082, 16, 14);
     this.headMesh = new THREE.Mesh(headGeo, this.balaclavaMat);
-    this.headMesh.scale.set(0.92, 1.18, 1.05);
+    this.headMesh.scale.set(0.92, 1.15, 1.05);
     this.headMesh.castShadow = true;
     this.headMesh.userData = { bot: this, part: 'head' };
     this.headGroup.add(this.headMesh);
     this.hitboxes.push(this.headMesh);
+
+    // 剛毅方形下顎輪廓塑形塊 (Jawline & Chin Contour - 告別模糊圓潤下巴)
+    const jawGeo = new THREE.BoxGeometry(0.068, 0.038, 0.068);
+    const jawMesh = new THREE.Mesh(jawGeo, this.balaclavaMat);
+    jawMesh.position.set(0, -0.072, 0.032);
+    this.headGroup.add(jawMesh);
 
     // 前置直立面部網格 (正面 100% 絕對正向 UV 貼圖，告別黑球與側貼問題)
     const faceGeo = new THREE.PlaneGeometry(0.125, 0.135);
