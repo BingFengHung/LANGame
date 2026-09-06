@@ -1,8 +1,9 @@
 import { Crosshair } from './Crosshair.js';
 
 export class HUD {
-  constructor(container) {
+  constructor(container, onStart = null) {
     this.container = container;
+    this.onStart = onStart;
     this.crosshair = new Crosshair(this.container);
     this.blocker = null;
 
@@ -50,6 +51,13 @@ export class HUD {
         </div>
       </div>
     `;
+
+    // 點擊遮罩直接觸發進入鎖定
+    this.blocker.addEventListener('click', () => {
+      if (this.onStart) {
+        this.onStart();
+      }
+    });
 
     this.container.appendChild(this.blocker);
   }

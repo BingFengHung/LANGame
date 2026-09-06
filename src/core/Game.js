@@ -54,7 +54,9 @@ export class Game {
     this.weaponView = new WeaponView(this.dualCamera.viewmodelScene);
 
     // 8. HUD 介面
-    this.hud = new HUD(this.uiContainer);
+    this.hud = new HUD(this.uiContainer, () => {
+      this.lockPointer();
+    });
 
     // 9. 武器背包管理器
     this.inventory = new WeaponInventory({
@@ -79,6 +81,17 @@ export class Game {
 
     // 視窗縮放監聽
     window.addEventListener('resize', () => this.onWindowResize());
+  }
+
+  lockPointer() {
+    try {
+      const p = this.canvas.requestPointerLock();
+      if (p && p.catch) {
+        p.catch((err) => console.warn('Pointer lock failed:', err));
+      }
+    } catch (err) {
+      console.warn('Pointer lock error:', err);
+    }
   }
 
   handleShoot(weapon) {
