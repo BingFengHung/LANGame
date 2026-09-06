@@ -682,45 +682,45 @@ function createLimbBone(pA, pB, radiusA, radiusB, material, addJointCaps = true)
 function createTacticalBoot(bootMat, padMat) {
   const bootGroup = new THREE.Group();
 
-  // 1. 高筒靴筒 (Boot Shaft - 包裹腳踝，自然銜接小腿)
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.052, 0.13, 12), bootMat);
-  shaft.position.set(0, 0.05, 0);
+  // 1. 高筒腳踝靴筒 (Boot Shaft - 上收下寬自然銜接小腿，告別生硬黑環)
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.048, 0.12, 12), bootMat);
+  shaft.position.set(0, 0.05, -0.01);
   shaft.castShadow = true;
   bootGroup.add(shaft);
 
-  // 2. 褲腳特勤束腿圈 (Blousing Band - 展現軍規俐落扎腿效果)
-  const blousing = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.009, 6, 16), padMat);
-  blousing.rotation.x = Math.PI / 2;
-  blousing.position.set(0, 0.095, 0);
-  bootGroup.add(blousing);
+  // 2. 傾斜人體工學腳背與鞋舌 (Slanted Instep & Tongue - 35度向前自然順滑傾斜)
+  const instep = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.046, 0.14, 12), bootMat);
+  instep.rotation.x = 0.60;
+  instep.position.set(0, 0.01, 0.04);
+  instep.scale.set(0.90, 1.0, 0.85);
+  instep.castShadow = true;
+  bootGroup.add(instep);
 
-  // 3. 流線鞋身 (Boot Instep - 前收窄、後圓潤之人體工學鞋楦)
-  const footBody = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.050, 0.17, 12), bootMat);
-  footBody.rotation.x = Math.PI / 2;
-  footBody.scale.set(0.92, 1.30, 0.82);
-  footBody.position.set(0, -0.015, 0.04);
-  footBody.castShadow = true;
-  bootGroup.add(footBody);
+  // 3. 流線鞋頭 (Toe Box - 扁平橢圓微上翹，真實登山靴鞋楦)
+  const toeBox = new THREE.Mesh(new THREE.SphereGeometry(0.040, 12, 10), bootMat);
+  toeBox.scale.set(0.92, 0.55, 1.30);
+  toeBox.position.set(0, -0.024, 0.09);
+  toeBox.castShadow = true;
+  bootGroup.add(toeBox);
 
-  // 4. 耐磨橡膠圓弧防撞包頭 (Rubber Toe Bumper - 前端微上翹，告別方塊木樁)
-  const toeCap = new THREE.Mesh(new THREE.SphereGeometry(0.044, 12, 10), padMat);
-  toeCap.scale.set(0.90, 0.65, 1.15);
-  toeCap.position.set(0, -0.024, 0.125);
-  toeCap.castShadow = true;
-  bootGroup.add(toeCap);
+  // 4. 前端橡膠防撞薄包頭 (Rubber Bumper Guard)
+  const toeGuard = new THREE.Mesh(new THREE.SphereGeometry(0.041, 10, 8), padMat);
+  toeGuard.scale.set(0.94, 0.58, 0.85);
+  toeGuard.position.set(0, -0.024, 0.12);
+  bootGroup.add(toeGuard);
 
-  // 5. 後腳跟耐磨硬護杯 (Heel Counter Cup)
-  const heelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.07, 10), padMat);
-  heelCup.position.set(0, -0.005, -0.035);
+  // 5. 後腳跟硬杯 (Heel Counter)
+  const heelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.044, 0.07, 10), padMat);
+  heelCup.position.set(0, -0.008, -0.035);
   bootGroup.add(heelCup);
 
-  // 6. 前掌防滑戰術大底 (Forefoot Outsole)
-  const foreSole = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.020, 0.15), padMat);
-  foreSole.position.set(0, -0.042, 0.065);
+  // 6. 前掌耐磨大底 (Forefoot Outsole - 扁平緊貼地面)
+  const foreSole = new THREE.Mesh(new THREE.BoxGeometry(0.076, 0.016, 0.14), padMat);
+  foreSole.position.set(0, -0.042, 0.06);
   bootGroup.add(foreSole);
 
-  // 7. 獨立加厚戰術後跟 (Tactical Heel - 形成立體落差足弓)
-  const heelSole = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.030, 0.075), padMat);
+  // 7. 獨立防滑加厚後跟 (Lugged Heel - 塑造經典足弓落差)
+  const heelSole = new THREE.Mesh(new THREE.BoxGeometry(0.074, 0.026, 0.065), padMat);
   heelSole.position.set(0, -0.037, -0.035);
   bootGroup.add(heelSole);
 
@@ -831,21 +831,24 @@ export class AIBot {
   // 告別劈叉與粗糙方塊，自然戰術站姿與立體裝備
   // ==========================================================
   buildLegsModule() {
+    this.hipsGroup = new THREE.Group();
+    this.hipsGroup.position.set(0, 0.74, 0);
+    this.group.add(this.hipsGroup);
+
     // 骨盆臀部 (Pelvis - 上寬下微收扁圓幾何，徹底消滅生硬大立方盒)
     const hipsGeo = new THREE.CylinderGeometry(0.145, 0.125, 0.16, 14);
     const hips = new THREE.Mesh(hipsGeo, this.pantsMat);
     hips.scale.set(1.10, 1.0, 0.82);
-    hips.position.set(0, 0.74, 0);
     hips.castShadow = true;
-    this.group.add(hips);
+    this.hipsGroup.add(hips);
 
     // 襠部三角形斜向自然過渡 (Crotch Gusset - 消除雙腿間粗糙門字方框)
     const crotchGeo = new THREE.CylinderGeometry(0.065, 0.035, 0.15, 10);
     const crotch = new THREE.Mesh(crotchGeo, this.pantsMat);
     crotch.rotation.x = 0.25;
-    crotch.position.set(0, 0.69, 0.02);
+    crotch.position.set(0, -0.05, 0.02);
     crotch.castShadow = true;
-    this.group.add(crotch);
+    this.hipsGroup.add(crotch);
 
     // 緊湊自然的人體雙腿參數 (間距 0.086m)
     const legSpacing = 0.086;
@@ -853,8 +856,8 @@ export class AIBot {
     // 左右兩側髖關節球窩 (Hip Joint Sockets - 圓潤自然承接大腿頂端)
     for (const sx of [-legSpacing, legSpacing]) {
       const hipSocket = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 10), this.pantsMat);
-      hipSocket.position.set(sx, 0.73, 0);
-      this.group.add(hipSocket);
+      hipSocket.position.set(sx, -0.01, 0);
+      this.hipsGroup.add(hipSocket);
     }
 
     // 大腿與小腿人體工學微錐幾何
@@ -1012,27 +1015,34 @@ export class AIBot {
       this.upperBody.add(sideCuff);
     }
 
-    // 兩肩解剖學戰術三角肌袖口與立體護肩 (Deltoid Shoulder Sockets - 天衣無縫銜接軀幹與手臂)
-    for (const sx of [-0.185, 0.185]) {
-      // 飽滿肌肉三角肌球窩 (包覆上臂骨骼頂部，天衣無縫銜接軀幹與手臂，徹底消滅生硬斷層)
-      const deltoidGeo = new THREE.SphereGeometry(0.068, 14, 12);
-      const deltoid = new THREE.Mesh(deltoidGeo, this.jacketMat);
-      deltoid.scale.set(0.92, 1.16, 1.05);
-      deltoid.position.set(sx, 0.16, 0);
-      deltoid.rotation.z = sx > 0 ? -0.15 : 0.15;
-      deltoid.castShadow = true;
-      this.upperBody.add(deltoid);
+    // 兩肩自然人體工學斜肩袖套與服貼防彈肩帶 (Seamless Natural Raglan Shoulder & Armor Straps)
+    for (const sx of [-1, 1]) {
+      const isRight = sx > 0;
+      // 1. 順應鎖骨向外下方傾斜之作戰服插肩袖 (消除外翻肉球，塑造流暢特戰斜肩)
+      const sleeveGeo = new THREE.CylinderGeometry(0.052, 0.048, 0.11, 12);
+      const sleeve = new THREE.Mesh(sleeveGeo, this.jacketMat);
+      sleeve.position.set(sx * 0.168, 0.145, 0);
+      sleeve.rotation.z = isRight ? 0.35 : -0.35; // 順著肩峰微向外下方自然傾斜
+      sleeve.scale.set(1.0, 1.0, 0.88);
+      sleeve.castShadow = true;
+      this.upperBody.add(sleeve);
 
-      // 戰術防彈護肩與重裝肩帶 (順著肩峰微向外側下傾，營造厚重特戰輪廓)
-      const shoulderPad = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.048, 0.16), this.vestMat);
-      shoulderPad.position.set(sx * 0.95, 0.20, 0);
-      shoulderPad.rotation.z = sx > 0 ? -0.18 : 0.18;
-      shoulderPad.castShadow = true;
-      this.upperBody.add(shoulderPad);
+      // 2. 肩頭圓潤關節轉折帽 (Acromion Cap - 平滑覆蓋手臂根部)
+      const shoulderCap = new THREE.Mesh(new THREE.SphereGeometry(0.050, 12, 10), this.jacketMat);
+      shoulderCap.position.set(sx * 0.180, 0.14, -0.005);
+      shoulderCap.scale.set(0.90, 1.05, 0.90);
+      this.upperBody.add(shoulderCap);
 
-      // 腋下與胸大肌外側銜接襯墊 (徹底消除手臂根部透光死角)
-      const armpitFiller = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.038, 0.14, 8), this.jacketMat);
-      armpitFiller.position.set(sx * 0.82, 0.10, 0);
+      // 3. 服貼緊湊防彈肩帶 (Contoured Armor Strap - 前後自然貫穿鎖骨，告別厚重黑浮塊)
+      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.022, 0.18), this.vestMat);
+      strap.position.set(sx * 0.142, 0.180, 0);
+      strap.rotation.z = isRight ? -0.15 : 0.15;
+      strap.castShadow = true;
+      this.upperBody.add(strap);
+
+      // 4. 腋下前胸胸肌平滑銜接
+      const armpitFiller = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.036, 0.12, 8), this.jacketMat);
+      armpitFiller.position.set(sx * 0.130, 0.09, 0);
       this.upperBody.add(armpitFiller);
     }
 
@@ -1272,9 +1282,9 @@ export class AIBot {
     // (在 this.armsPivot 局部座標中，完全消滅抱胸)
 
     // 1. 右臂 (扣扳機主手)：
-    // 肩關節精確錨定於右肩三角肌袖口球心 (0.185, 0, 0)，手肘在右肋外側下沉，前臂直伸扣住握把
-    const pRightShoulder = new THREE.Vector3(0.185, 0.00, 0.00);
-    const pRightElbow = new THREE.Vector3(0.225, -0.18, 0.04);
+    // 肩關節精確錨定於右肩峰轉折帽球心 (0.180, -0.02, -0.005)，手肘在右肋外側下沉，前臂直伸扣住握把
+    const pRightShoulder = new THREE.Vector3(0.180, -0.02, -0.005);
+    const pRightElbow = new THREE.Vector3(0.220, -0.18, 0.04);
     const pRightWrist = new THREE.Vector3(0.14, -0.11, 0.12);
 
     const rightUpperArm = createLimbBone(pRightShoulder, pRightElbow, 0.043, 0.037, this.jacketMat);
@@ -1296,8 +1306,8 @@ export class AIBot {
     this.armsPivot.add(rightGlove);
 
     // 2. 左臂 (托護木副手)：
-    // 肩關節精確錨定於左肩三角肌袖口球心 (-0.185, 0, 0)，手肘向前下方支撐展開，前臂向前上方斜伸托住護木
-    const pLeftShoulder = new THREE.Vector3(-0.185, 0.00, 0.00);
+    // 肩關節精確錨定於左肩峰轉折帽球心 (-0.180, -0.02, -0.005)，手肘向前下方支撐展開，前臂向前上方斜伸托住護木
+    const pLeftShoulder = new THREE.Vector3(-0.180, -0.02, -0.005);
     const pLeftElbow = new THREE.Vector3(-0.08, -0.14, 0.18);
     const pLeftWrist = new THREE.Vector3(0.14, -0.07, 0.38); // 位於護木下方 (Z=0.38，前後縱深相差 26cm！)
 
@@ -1582,10 +1592,43 @@ export class AIBot {
       this.armsPivot.position.y = 0.16 + idleSway * 0.35;
     }
 
-    // 7. 蹲下壓槍平滑過渡 (Crouch Smoothing)
-    const targetUpperY = this.isCrouching ? 0.85 : this.baseTorsoY;
-    if (this.upperBody) {
-      this.upperBody.position.y += (targetUpperY - this.upperBody.position.y) * Math.min(delta * 12, 1);
+    // 7. 真人骨骼兩段式屈膝下蹲動力學 (Anatomical Kinematic Crouch - 徹底告別單純壓扁縮圖)
+    const targetProgress = this.isCrouching ? 1.0 : 0.0;
+    this.crouchProgress += (targetProgress - this.crouchProgress) * Math.min(delta * 10, 1);
+    const cp = this.crouchProgress;
+
+    if (cp > 0.001) {
+      // A. 髖關節前屈折疊 (Hip Flexion - 大腿向前上方自然抬起折疊)
+      const leftHipAngle = -0.72 * cp;
+      const rightHipAngle = -0.76 * cp;
+      this.leftLegPivot.rotation.x = leftHipAngle;
+      this.rightLegPivot.rotation.x = rightHipAngle;
+
+      // B. 膝關節深度彎曲跪折 (Knee Flexion - 膝蓋向前自然凸出、小腿向後折疊)
+      const leftKneeAngle = 1.38 * cp;
+      const rightKneeAngle = 1.44 * cp;
+      if (this.leftKneePivot) this.leftKneePivot.rotation.x = leftKneeAngle;
+      if (this.rightKneePivot) this.rightKneePivot.rotation.x = rightKneeAngle;
+
+      // C. 骨盆與臀部重心自然下沉 (Pelvis Drop - 遵循人體屈膝幾何落差，絕非模型縮放)
+      const pelvisDrop = 0.22 * cp;
+      this.leftLegPivot.position.y = 0.74 - pelvisDrop;
+      this.rightLegPivot.position.y = 0.74 - pelvisDrop;
+      if (this.hipsGroup) this.hipsGroup.position.y = 0.74 - pelvisDrop;
+
+      // D. 上半身重心平滑下降與戰術壓槍微前傾
+      if (this.upperBody) {
+        this.upperBody.position.y = this.baseTorsoY - (pelvisDrop + 0.03 * cp);
+        this.upperBody.rotation.x += 0.15 * cp; // 蹲下時脊椎自然微前傾 8 度
+      }
+    } else if (cp <= 0.001 && !this.isMoving) {
+      // 站立狀態且未移動時恢復標準人體站姿高程
+      this.leftLegPivot.position.y = 0.74;
+      this.rightLegPivot.position.y = 0.74;
+      if (this.hipsGroup) this.hipsGroup.position.y = 0.74;
+      if (this.upperBody) {
+        this.upperBody.position.y += (this.baseTorsoY - this.upperBody.position.y) * Math.min(delta * 12, 1);
+      }
     }
 
     // 8. 計算與玩家之距離與視線遮擋 (含實體掩體與煙霧彈阻隔)
@@ -1859,7 +1902,7 @@ export class AIBot {
     // 3. 骨盆與上半身垂直起伏彈跳 (Pelvis Bounce / Torso Bobbing)
     // 跑步時重心在雙腳交替時週期性下沉，賦予模型真實人體質量感！
     const bounce = Math.abs(Math.sin(this.walkAnimTimer * 2)) * 0.052;
-    const targetY = (this.isCrouching ? 0.85 : this.baseTorsoY) - bounce;
+    const targetY = (this.baseTorsoY - 0.25 * this.crouchProgress) - bounce;
     this.upperBody.position.y += (targetY - this.upperBody.position.y) * Math.min(delta * 16, 1);
 
     // 4. 重心左右橫擺與脊柱反向扭動 (Pelvis Roll & Spine Counter-Twist)
@@ -1880,6 +1923,20 @@ export class AIBot {
   resetLegs(delta = 0.016) {
     this.isMoving = false;
     const smooth = Math.min(delta * 12, 1);
+
+    // 若正在下蹲中，腿部骨骼已由下蹲動力學 (Anatomical Kinematic Crouch) 精確控管，避免被站姿拉直衝突
+    if (this.crouchProgress > 0.05) {
+      if (this.upperBody) {
+        this.upperBody.rotation.z += (0 - this.upperBody.rotation.z) * smooth;
+        this.upperBody.rotation.y += (0 - this.upperBody.rotation.y) * smooth;
+      }
+      if (this.armsPivot) {
+        this.armsPivot.position.set(0, 0.16, 0.0);
+      }
+      this.group.rotation.z += (0 - this.group.rotation.z) * smooth;
+      return;
+    }
+
     this.leftLegPivot.rotation.x += (0.04 - this.leftLegPivot.rotation.x) * smooth;
     this.rightLegPivot.rotation.x += (0.04 - this.rightLegPivot.rotation.x) * smooth;
     if (this.leftKneePivot) this.leftKneePivot.rotation.x += (0.08 - this.leftKneePivot.rotation.x) * smooth;
