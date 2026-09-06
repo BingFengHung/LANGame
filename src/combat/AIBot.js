@@ -65,163 +65,57 @@ export class AIBot {
   }
 
   buildModel() {
-    // 經典 CS 恐怖分子 (Phoenix Connexion) 高精緻特勤材質
-    this.jacketMat = new THREE.MeshStandardMaterial({ color: 0x7c3418, roughness: 0.72 }); // 經典深棕紅戰鬥夾克
-    this.vestMat = new THREE.MeshStandardMaterial({ color: 0x1f242d, roughness: 0.7, metalness: 0.25 }); // 戰術防彈背心 (Plate Carrier)
-    this.pouchMat = new THREE.MeshStandardMaterial({ color: 0x161920, roughness: 0.85 }); // 彈匣快拔戰術包
-    this.beltMat = new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.9 }); // 戰術勤務腰帶
-    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x303642, roughness: 0.8 }); // 戰術作戰褲
-    this.skinMat = new THREE.MeshStandardMaterial({ color: 0x1e2025, roughness: 0.88 }); // 深灰黑面罩頭套 (Balaclava)
-    this.faceSkinMat = new THREE.MeshStandardMaterial({ color: 0xd29d74, roughness: 0.62 }); // 眼部露出的人類皮膚肉色
+    // 經典 CS 特勤/恐怖分子 (Phoenix Connexion / Elite Crew) 專業戰術材質
+    this.jacketMat = new THREE.MeshStandardMaterial({ color: 0x6e2c14, roughness: 0.75 }); // 深棕紅耐磨戰術戰鬥服
+    this.vestMat = new THREE.MeshStandardMaterial({ color: 0x1b2028, roughness: 0.65, metalness: 0.3 }); // 重裝防彈背心 (Plate Carrier)
+    this.pouchMat = new THREE.MeshStandardMaterial({ color: 0x13171d, roughness: 0.85 }); // 戰術彈匣包
+    this.beltMat = new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 0.9 }); // 勤務腰帶
+    this.pantsMat = new THREE.MeshStandardMaterial({ color: 0x2b323c, roughness: 0.8 }); // 戰術多袋作戰長褲
+    this.skinMat = new THREE.MeshStandardMaterial({ color: 0x18191d, roughness: 0.85 }); // Balaclava 蒙面頭套
+    this.helmetMat = new THREE.MeshStandardMaterial({ color: 0x222a24, roughness: 0.5, metalness: 0.4 }); // FAST 戰術防彈頭盔 (軍綠消光)
+    this.scarfMat = new THREE.MeshStandardMaterial({ color: 0x786d5c, roughness: 0.85 }); // 戰術防風圍巾 (Shemagh Scarf)
+    this.faceSkinMat = new THREE.MeshStandardMaterial({ color: 0xd29d74, roughness: 0.6 }); // 真人面部皮膚肉色
     this.eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 }); // 眼白
     this.pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 }); // 瞳孔
-    this.goggleMat = new THREE.MeshStandardMaterial({ color: 0x07090c, roughness: 0.08, metalness: 0.95 }); // 戰術防爆風鏡鏡片
-    this.goggleFrameMat = new THREE.MeshStandardMaterial({ color: 0x15181e, roughness: 0.6 }); // 風鏡外框
-    this.gunMat = new THREE.MeshStandardMaterial({ color: 0x181e26, roughness: 0.35, metalness: 0.85 }); // 步槍金屬冷鋼
-    this.woodMat = new THREE.MeshStandardMaterial({ color: 0x6e3819, roughness: 0.55 }); // 俄式胡桃木護木與槍托
-    this.bootMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.85 }); // 重型突擊軍靴
-    this.padMat = new THREE.MeshStandardMaterial({ color: 0x0b0d10, roughness: 0.4, metalness: 0.3 }); // 戰術硬殼護膝與護肘
-    this.gloveMat = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.68 }); // 黑色防滑戰術手套
-    this.filterMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35, metalness: 0.65 }); // 金屬過濾閥
+    this.goggleMat = new THREE.MeshStandardMaterial({ color: 0x080a0e, roughness: 0.06, metalness: 0.96 }); // 防爆風鏡高反光鏡片
+    this.goggleFrameMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.7 }); // 風鏡外框
+    this.gunMat = new THREE.MeshStandardMaterial({ color: 0x161a22, roughness: 0.3, metalness: 0.9 }); // 步槍金屬
+    this.woodMat = new THREE.MeshStandardMaterial({ color: 0x6e3819, roughness: 0.5 }); // 俄式胡桃木
+    this.bootMat = new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.85 }); // 重型軍靴
+    this.padMat = new THREE.MeshStandardMaterial({ color: 0x090a0d, roughness: 0.35, metalness: 0.3 }); // 硬殼護具
+    this.gloveMat = new THREE.MeshStandardMaterial({ color: 0x111316, roughness: 0.65 }); // 黑色防滑手套
+    this.filterMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35, metalness: 0.65 }); // 呼吸閥
 
     // ==========================================================
-    // 1. 骨盆中樞與上半身 (Pelvis & Torso Hierarchy)
+    // 1. 骨盆中樞與厚實下半身 (Pelvis, Hips & Tactical Cargo Pants)
+    // 徹底消除兩腿之間的空隙與懸空感，打造厚實特勤軍褲
     // ==========================================================
-    this.upperBody = new THREE.Group();
-    this.upperBody.position.set(0, this.baseTorsoY, 0);
-    this.group.add(this.upperBody);
+    // 骨盆/臀部襠部 (Hips & Crotch - 倒梯形完整連接腰帶與大腿)
+    const hipsGeo = new THREE.BoxGeometry(0.34, 0.20, 0.25);
+    const hips = new THREE.Mesh(hipsGeo, this.pantsMat);
+    hips.position.set(0, 0.74, 0);
+    hips.castShadow = true;
+    this.group.add(hips);
 
-    // 倒三角胸腔 (Chest - 圓角圓柱體壓平，符合人體軀幹)
-    const chestGeo = new THREE.CylinderGeometry(0.24, 0.20, 0.38, 14);
-    this.torsoMesh = new THREE.Mesh(chestGeo, this.jacketMat);
-    this.torsoMesh.scale.set(1.0, 1.0, 0.72);
-    this.torsoMesh.castShadow = true;
-    this.torsoMesh.userData = { bot: this, part: 'body' };
-    this.upperBody.add(this.torsoMesh);
-    this.hitboxes.push(this.torsoMesh);
+    // 襠部前檔三角形加強塊
+    const crotchGeo = new THREE.CylinderGeometry(0.09, 0.05, 0.16, 8);
+    const crotch = new THREE.Mesh(crotchGeo, this.pantsMat);
+    crotch.position.set(0, 0.70, 0.04);
+    crotch.castShadow = true;
+    this.group.add(crotch);
 
-    // 腹部與骨盆 (Abdomen & Pelvis)
-    const waistGeo = new THREE.CylinderGeometry(0.18, 0.20, 0.24, 14);
-    const waist = new THREE.Mesh(waistGeo, this.jacketMat);
-    waist.scale.set(1.0, 1.0, 0.7);
-    waist.position.set(0, -0.24, 0);
-    waist.castShadow = true;
-    this.upperBody.add(waist);
-
-    // 戰術防彈插板背心 (Plate Carrier - 前後雙防護板)
-    const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.34, 0.06), this.vestMat);
-    frontPlate.position.set(0, 0.02, 0.13);
-    frontPlate.castShadow = true;
-    this.upperBody.add(frontPlate);
-
-    const backPlate = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.34, 0.06), this.vestMat);
-    backPlate.position.set(0, 0.02, -0.13);
-    backPlate.castShadow = true;
-    this.upperBody.add(backPlate);
-
-    // 肩部防彈吊帶 (Shoulder Straps)
-    for (const sx of [-0.14, 0.14]) {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.3), this.vestMat);
-      strap.position.set(sx, 0.19, 0);
-      this.upperBody.add(strap);
-    }
-
-    // 胸前三聯 AK 步槍彈匣快拔包 (Triple Ammo Pouches)
-    for (let p = -1; p <= 1; p++) {
-      const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.16, 0.05), this.pouchMat);
-      pouch.position.set(p * 0.1, -0.06, 0.17);
-      this.upperBody.add(pouch);
-    }
-
-    // 胸前戰術通訊手咪與對講機 (Tactical Radio & Mic)
-    const radio = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.11, 0.04), this.pouchMat);
-    radio.position.set(-0.15, 0.12, 0.16);
-    this.upperBody.add(radio);
-
-    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.12, 4), this.gunMat);
-    antenna.position.set(-0.15, 0.22, 0.16);
-    this.upperBody.add(antenna);
-
-    // 戰術勤務腰帶 (Tactical Duty Belt)
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.07, 14), this.beltMat);
-    belt.scale.set(1.0, 1.0, 0.72);
-    belt.position.set(0, -0.34, 0);
-    this.upperBody.add(belt);
-
-    // 側腰快拔手槍槍套 (Sidearm Holster)
-    const holster = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.16, 0.09), this.beltMat);
-    holster.position.set(0.22, -0.36, 0.02);
-    this.upperBody.add(holster);
-
-    // ==========================================================
-    // 2. 頸部與擬真人體頭部 (Neck & Realistic Human Head with Eyes & Mask)
-    // ==========================================================
-    // 圓柱形脖子 (Neck)
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.1, 12), this.jacketMat);
-    neck.position.set(0, 0.23, 0);
-    this.upperBody.add(neck);
-
-    // 圓潤擬真人體頭顱 (Head with Balaclava Mask)
-    const headGeo = new THREE.SphereGeometry(0.125, 16, 14);
-    this.headMesh = new THREE.Mesh(headGeo, this.skinMat);
-    this.headMesh.scale.set(0.92, 1.15, 1.05); // 壓塑為自然人類頭型
-    this.headMesh.position.set(0, 0.44, 0);
-    this.headMesh.castShadow = true;
-    this.headMesh.userData = { bot: this, part: 'head' };
-    this.upperBody.add(this.headMesh);
-    this.hitboxes.push(this.headMesh);
-
-    // 面罩眼部挖空處的真人膚色臉部 (Balaclava Eye Opening Skin)
-    const faceSkin = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.045), this.faceSkinMat);
-    faceSkin.position.set(0, 0.455, 0.124);
-    this.upperBody.add(faceSkin);
-
-    // 黑白分明的真人雙眼 (Eyes with Pupils)
-    for (const eyeX of [-0.034, 0.034]) {
-      // 眼白
-      const eyeWhite = new THREE.Mesh(new THREE.PlaneGeometry(0.022, 0.014), this.eyeWhiteMat);
-      eyeWhite.position.set(eyeX, 0.455, 0.125);
-      this.upperBody.add(eyeWhite);
-
-      // 黑色瞳孔
-      const pupil = new THREE.Mesh(new THREE.PlaneGeometry(0.011, 0.011), this.pupilMat);
-      pupil.position.set(eyeX, 0.455, 0.126);
-      this.upperBody.add(pupil);
-    }
-
-    // 戰術風鏡外框與高光鏡片 (Tactical Goggles)
-    const goggleFrame = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.065, 0.04), this.goggleFrameMat);
-    goggleFrame.position.set(0, 0.47, 0.115);
-    this.upperBody.add(goggleFrame);
-
-    const goggleLens = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.048, 0.01), this.goggleMat);
-    goggleLens.position.set(0, 0.47, 0.136);
-    this.upperBody.add(goggleLens);
-
-    // 立體呼吸過濾閥 (Respirator Filter)
-    const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.038, 10), this.filterMat);
-    filter.rotation.x = Math.PI / 2;
-    filter.position.set(0, 0.38, 0.135);
-    this.upperBody.add(filter);
-
-    // 單耳戰術通訊耳麥 (Tactical Headset)
-    const earCup = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.03, 10), this.pouchMat);
-    earCup.rotation.z = Math.PI / 2;
-    earCup.position.set(-0.125, 0.44, 0);
-    this.upperBody.add(earCup);
-
-    // ==========================================================
-    // 3. 雙節腿部運動學結構 (Two-Segment Leg Locomotion with Knee Pivots)
-    // ==========================================================
-    const thighGeo = new THREE.CylinderGeometry(0.082, 0.07, 0.36, 12);
-    const calfGeo = new THREE.CylinderGeometry(0.068, 0.056, 0.36, 12);
-    const bootFootGeo = new THREE.BoxGeometry(0.14, 0.12, 0.24);
-    const bootSoleGeo = new THREE.BoxGeometry(0.145, 0.03, 0.25);
-    const kneepadGeo = new THREE.BoxGeometry(0.13, 0.11, 0.05);
+    // 雙腿參數 (厚實戰術軍褲半徑 0.082~0.095m，緊湊自然間距)
+    const legSpacing = 0.098; // 雙腿自然間距，絕不劈叉
+    const thighGeo = new THREE.CylinderGeometry(0.092, 0.080, 0.36, 12);
+    const calfGeo = new THREE.CylinderGeometry(0.076, 0.065, 0.36, 12);
+    const cargoPocketGeo = new THREE.BoxGeometry(0.045, 0.16, 0.13);
+    const kneepadGeo = new THREE.BoxGeometry(0.14, 0.12, 0.06);
+    const bootFootGeo = new THREE.BoxGeometry(0.14, 0.13, 0.25);
+    const bootSoleGeo = new THREE.BoxGeometry(0.145, 0.035, 0.26);
 
     // --- 左腿 (Left Leg) ---
     this.leftLegPivot = new THREE.Group();
-    this.leftLegPivot.position.set(-0.13, 0.82, 0);
+    this.leftLegPivot.position.set(-legSpacing, 0.74, 0);
 
     // 左大腿
     this.leftLegMesh = new THREE.Mesh(thighGeo, this.pantsMat);
@@ -231,14 +125,19 @@ export class AIBot {
     this.leftLegPivot.add(this.leftLegMesh);
     this.hitboxes.push(this.leftLegMesh);
 
+    // 左大腿外側戰術大口袋 (Cargo Pocket)
+    const leftPocket = new THREE.Mesh(cargoPocketGeo, this.pantsMat);
+    leftPocket.position.set(-0.08, -0.16, 0.01);
+    this.leftLegPivot.add(leftPocket);
+
     // 左膝關節樞軸 (Left Knee Pivot)
     this.leftKneePivot = new THREE.Group();
     this.leftKneePivot.position.set(0, -0.36, 0);
     this.leftLegPivot.add(this.leftKneePivot);
 
-    // 左膝硬殼護膝
+    // 左膝 X 型硬殼防護護膝 (Kneepad)
     const leftKneepad = new THREE.Mesh(kneepadGeo, this.padMat);
-    leftKneepad.position.set(0, 0, 0.06);
+    leftKneepad.position.set(0, 0, 0.065);
     this.leftKneePivot.add(leftKneepad);
 
     // 左小腿
@@ -247,7 +146,7 @@ export class AIBot {
     leftCalf.castShadow = true;
     this.leftKneePivot.add(leftCalf);
 
-    // 左腳作戰軍靴 (鞋身 + 突起厚橡膠鞋底)
+    // 左腳高筒突擊軍靴 (鞋身 + 齒輪厚鞋底)
     const leftBootFoot = new THREE.Mesh(bootFootGeo, this.bootMat);
     leftBootFoot.position.set(0, -0.32, 0.03);
     leftBootFoot.castShadow = true;
@@ -261,7 +160,7 @@ export class AIBot {
 
     // --- 右腿 (Right Leg) ---
     this.rightLegPivot = new THREE.Group();
-    this.rightLegPivot.position.set(0.13, 0.82, 0);
+    this.rightLegPivot.position.set(legSpacing, 0.74, 0);
 
     // 右大腿
     this.rightLegMesh = new THREE.Mesh(thighGeo, this.pantsMat);
@@ -271,6 +170,11 @@ export class AIBot {
     this.rightLegPivot.add(this.rightLegMesh);
     this.hitboxes.push(this.rightLegMesh);
 
+    // 右大腿外側戰術大口袋 (Cargo Pocket)
+    const rightPocket = new THREE.Mesh(cargoPocketGeo, this.pantsMat);
+    rightPocket.position.set(0.08, -0.16, 0.01);
+    this.rightLegPivot.add(rightPocket);
+
     // 右膝關節樞軸 (Right Knee Pivot)
     this.rightKneePivot = new THREE.Group();
     this.rightKneePivot.position.set(0, -0.36, 0);
@@ -278,7 +182,7 @@ export class AIBot {
 
     // 右膝硬殼護膝
     const rightKneepad = new THREE.Mesh(kneepadGeo, this.padMat);
-    rightKneepad.position.set(0, 0, 0.06);
+    rightKneepad.position.set(0, 0, 0.065);
     this.rightKneePivot.add(rightKneepad);
 
     // 右小腿
@@ -287,7 +191,7 @@ export class AIBot {
     rightCalf.castShadow = true;
     this.rightKneePivot.add(rightCalf);
 
-    // 右腳作戰軍靴
+    // 右腳高筒軍靴
     const rightBootFoot = new THREE.Mesh(bootFootGeo, this.bootMat);
     rightBootFoot.position.set(0, -0.32, 0.03);
     rightBootFoot.castShadow = true;
@@ -300,112 +204,270 @@ export class AIBot {
     this.group.add(this.rightLegPivot);
 
     // ==========================================================
-    // 4. 擬真雙臂持槍體態 (Upper Arms, Forearms, Gloves & Rifle)
+    // 2. 上半身軀幹與重裝戰術防彈背心 (Torso & Tactical Vest)
+    // 徹底蓋滿整個上身直至腰帶，杜絕裸露肚臍，身形魁梧倒三角
+    // ==========================================================
+    this.upperBody = new THREE.Group();
+    this.upperBody.position.set(0, this.baseTorsoY, 0);
+    this.group.add(this.upperBody);
+
+    // 魁梧倒三角胸腔 (Chest - 寬 0.48m, 厚 0.28m)
+    const chestGeo = new THREE.CylinderGeometry(0.25, 0.21, 0.46, 14);
+    this.torsoMesh = new THREE.Mesh(chestGeo, this.jacketMat);
+    this.torsoMesh.scale.set(1.0, 1.0, 0.74);
+    this.torsoMesh.castShadow = true;
+    this.torsoMesh.userData = { bot: this, part: 'body' };
+    this.upperBody.add(this.torsoMesh);
+    this.hitboxes.push(this.torsoMesh);
+
+    // 重型防彈背心主板 (Plate Carrier - 覆蓋整個胸腹，高 0.48m)
+    const vestFront = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.44, 0.08), this.vestMat);
+    vestFront.position.set(0, -0.02, 0.12);
+    vestFront.castShadow = true;
+    this.upperBody.add(vestFront);
+
+    const vestBack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.44, 0.08), this.vestMat);
+    vestBack.position.set(0, -0.02, -0.12);
+    vestBack.castShadow = true;
+    this.upperBody.add(vestBack);
+
+    // 兩側彈性腰封護腹帶 (Cummerbund)
+    for (const sideX of [-0.21, 0.21]) {
+      const sideCuff = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.24, 0.24), this.vestMat);
+      sideCuff.position.set(sideX, -0.1, 0);
+      this.upperBody.add(sideCuff);
+    }
+
+    // 肩部厚實斜方肌與防護肩墊 (Shoulder Armor Pads - 肩寬延伸至 0.52m)
+    for (const sx of [-0.21, 0.21]) {
+      const shoulderPad = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.24), this.vestMat);
+      shoulderPad.position.set(sx, 0.22, 0);
+      this.upperBody.add(shoulderPad);
+    }
+
+    // 胸前三聯 AK-47 彈匣快拔包 (Triple Mag Pouches)
+    for (let p = -1; p <= 1; p++) {
+      const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.17, 0.06), this.pouchMat);
+      pouch.position.set(p * 0.105, -0.06, 0.17);
+      this.upperBody.add(pouch);
+    }
+
+    // 胸前戰術通訊手咪與對講機 (Radio & Mic)
+    const radio = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.045), this.pouchMat);
+    radio.position.set(-0.16, 0.13, 0.16);
+    this.upperBody.add(radio);
+
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.13, 4), this.gunMat);
+    antenna.position.set(-0.16, 0.24, 0.16);
+    this.upperBody.add(antenna);
+
+    // 戰術勤務腰帶 (Duty Belt - 位於背心下沿與臀部連接處)
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 14), this.beltMat);
+    belt.scale.set(1.0, 1.0, 0.74);
+    belt.position.set(0, -0.32, 0);
+    this.upperBody.add(belt);
+
+    // 側腰快拔手槍槍套 (Sidearm Holster)
+    const holster = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.1), this.beltMat);
+    holster.position.set(0.23, -0.34, 0.02);
+    this.upperBody.add(holster);
+
+    // 脖子周圍厚實戰術圍巾 (Tactical Shemagh Collar - 徹底消除細棒脖子)
+    const scarfCollar = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.045, 8, 16), this.scarfMat);
+    scarfCollar.rotation.x = Math.PI / 2;
+    scarfCollar.position.set(0, 0.25, 0.02);
+    this.upperBody.add(scarfCollar);
+
+    // ==========================================================
+    // 3. 特戰 FAST 戰術頭盔、面罩與防爆風鏡 (FAST Helmet, Balaclava & Goggles)
+    // ==========================================================
+    // 頭部中樞 (Head Group)
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.44, 0);
+    this.upperBody.add(headGroup);
+
+    // 面罩頭部本體 (Head with Balaclava)
+    const headGeo = new THREE.SphereGeometry(0.13, 16, 14);
+    this.headMesh = new THREE.Mesh(headGeo, this.skinMat);
+    this.headMesh.scale.set(0.92, 1.15, 1.05);
+    this.headMesh.castShadow = true;
+    this.headMesh.userData = { bot: this, part: 'head' };
+    headGroup.add(this.headMesh);
+    this.hitboxes.push(this.headMesh);
+
+    // FAST 戰術防彈頭盔 (Tactical High-Cut Helmet)
+    const helmetGeo = new THREE.SphereGeometry(0.145, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.58);
+    const helmet = new THREE.Mesh(helmetGeo, this.helmetMat);
+    helmet.scale.set(0.96, 1.05, 1.08);
+    helmet.position.set(0, 0.03, -0.01);
+    helmet.castShadow = true;
+    headGroup.add(helmet);
+
+    // 頭盔前額夜視儀墨魚干基座 (NVG Shroud)
+    const nvgMount = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.02), this.padMat);
+    nvgMount.position.set(0, 0.08, 0.145);
+    headGroup.add(nvgMount);
+
+    // 頭盔兩側戰術導軌 (ARC Rails)
+    for (const rx of [-0.135, 0.135]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.11), this.padMat);
+      rail.position.set(rx, 0.04, 0.01);
+      headGroup.add(rail);
+    }
+
+    // 面罩眼部挖空處皮膚 (Skin Opening)
+    const faceSkin = new THREE.Mesh(new THREE.PlaneGeometry(0.135, 0.048), this.faceSkinMat);
+    faceSkin.position.set(0, 0.015, 0.132);
+    headGroup.add(faceSkin);
+
+    // 黑白分明雙眼 (Eyes)
+    for (const eyeX of [-0.035, 0.035]) {
+      const eyeWhite = new THREE.Mesh(new THREE.PlaneGeometry(0.024, 0.014), this.eyeWhiteMat);
+      eyeWhite.position.set(eyeX, 0.015, 0.133);
+      headGroup.add(eyeWhite);
+
+      const pupil = new THREE.Mesh(new THREE.PlaneGeometry(0.012, 0.012), this.pupilMat);
+      pupil.position.set(eyeX, 0.015, 0.134);
+      headGroup.add(pupil);
+    }
+
+    // 大號特種戰術防爆風鏡 (Tactical Goggles with Elastic Strap)
+    const goggleFrame = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.068, 0.04), this.goggleFrameMat);
+    goggleFrame.position.set(0, 0.03, 0.125);
+    headGroup.add(goggleFrame);
+
+    const goggleLens = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.01), this.goggleMat);
+    goggleLens.position.set(0, 0.03, 0.146);
+    headGroup.add(goggleLens);
+
+    // 風鏡彈性束帶 (圍繞頭部兩側)
+    for (const bx of [-0.13, 0.13]) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.03, 0.18), this.goggleFrameMat);
+      band.position.set(bx, 0.03, 0);
+      headGroup.add(band);
+    }
+
+    // 立體呼吸過濾閥
+    const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.038, 10), this.filterMat);
+    filter.rotation.x = Math.PI / 2;
+    filter.position.set(0, -0.06, 0.14);
+    headGroup.add(filter);
+
+    // ==========================================================
+    // 4. 標準第三人稱步槍架持姿態 (AK-47 Tactical Rifle Stance)
+    // 槍托抵於右肩前、雙臂自然向前展開瞄準，絕不縮在懷中
     // ==========================================================
     this.armsPivot = new THREE.Group();
-    this.armsPivot.position.set(0, 0.16, 0);
+    this.armsPivot.position.set(0, 0.18, 0);
     this.upperBody.add(this.armsPivot);
 
-    const upperArmGeo = new THREE.CylinderGeometry(0.052, 0.046, 0.22, 10);
-    const forearmGeo = new THREE.CylinderGeometry(0.045, 0.038, 0.22, 10);
-    const elbowPadGeo = new THREE.BoxGeometry(0.08, 0.08, 0.05);
+    const upperArmGeo = new THREE.CylinderGeometry(0.054, 0.048, 0.26, 10);
+    const forearmGeo = new THREE.CylinderGeometry(0.048, 0.040, 0.26, 10);
+    const elbowPadGeo = new THREE.BoxGeometry(0.085, 0.085, 0.055);
 
     // --- 右手臂 (主手握把扣扳機) ---
     this.rightArmGroup = new THREE.Group();
-    this.rightArmGroup.position.set(0.24, 0, 0);
+    this.rightArmGroup.position.set(0.25, 0, 0);
 
+    // 右大臂 (從右肩自然外展向前延伸)
     const rightUpperArm = new THREE.Mesh(upperArmGeo, this.jacketMat);
-    rightUpperArm.position.set(0, -0.09, 0.04);
-    rightUpperArm.rotation.set(-0.7, 0.2, -0.2);
+    rightUpperArm.position.set(0, -0.09, 0.08);
+    rightUpperArm.rotation.set(-0.85, 0.25, -0.2);
     this.rightArmGroup.add(rightUpperArm);
 
+    // 右前臂 (向前伸出握住握把)
     const rightForearm = new THREE.Mesh(forearmGeo, this.jacketMat);
-    rightForearm.position.set(0, -0.15, 0.18);
-    rightForearm.rotation.set(-1.3, 0.3, -0.3);
+    rightForearm.position.set(-0.06, -0.16, 0.24);
+    rightForearm.rotation.set(-1.25, 0.35, -0.35);
     this.rightArmGroup.add(rightForearm);
 
     const rightElbow = new THREE.Mesh(elbowPadGeo, this.padMat);
-    rightElbow.position.set(0.01, -0.12, 0.08);
+    rightElbow.position.set(0.01, -0.13, 0.14);
     this.rightArmGroup.add(rightElbow);
 
     // 右手套
-    const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.05, 0.08), this.gloveMat);
-    rightGlove.position.set(-0.02, -0.2, 0.28);
+    const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.085), this.gloveMat);
+    rightGlove.position.set(-0.11, -0.21, 0.35);
     this.rightArmGroup.add(rightGlove);
 
     this.armsPivot.add(this.rightArmGroup);
 
-    // --- 左手臂 (副手斜前托住護木) ---
+    // --- 左手臂 (副手托住槍管護木) ---
     this.leftArmGroup = new THREE.Group();
-    this.leftArmGroup.position.set(-0.24, 0, 0);
+    this.leftArmGroup.position.set(-0.25, 0, 0);
 
+    // 左大臂 (向左前下方展開)
     const leftUpperArm = new THREE.Mesh(upperArmGeo, this.jacketMat);
-    leftUpperArm.position.set(0.04, -0.09, 0.06);
-    leftUpperArm.rotation.set(-0.6, -0.3, 0.4);
+    leftUpperArm.position.set(0.04, -0.1, 0.09);
+    leftUpperArm.rotation.set(-0.7, -0.3, 0.35);
     this.leftArmGroup.add(leftUpperArm);
 
+    // 左前臂 (斜向右上托木質護木)
     const leftForearm = new THREE.Mesh(forearmGeo, this.jacketMat);
-    leftForearm.position.set(0.12, -0.14, 0.24);
-    leftForearm.rotation.set(-1.4, -0.35, 0.6);
+    leftForearm.position.set(0.18, -0.15, 0.28);
+    leftForearm.rotation.set(-1.35, -0.4, 0.65);
     this.leftArmGroup.add(leftForearm);
 
     const leftElbow = new THREE.Mesh(elbowPadGeo, this.padMat);
-    leftElbow.position.set(0.04, -0.12, 0.12);
+    leftElbow.position.set(0.06, -0.14, 0.15);
     this.leftArmGroup.add(leftElbow);
 
-    // 左手套 (托住木質護木)
-    const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.05, 0.08), this.gloveMat);
-    leftGlove.position.set(0.22, -0.18, 0.34);
+    // 左手套 (托住槍身下護木)
+    const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.085), this.gloveMat);
+    leftGlove.position.set(0.31, -0.18, 0.44);
     this.leftArmGroup.add(leftGlove);
 
     this.armsPivot.add(this.leftArmGroup);
 
     // ==========================================================
-    // 5. 步槍模型 (擬真 AK-47 標誌輪廓)
+    // 5. 步槍本體 (AK-47 完整真實比例 0.82m)
+    // 槍托頂於右肩、槍口水平筆直朝前，香蕉彈匣與木質護木一目了然
     // ==========================================================
     this.weaponGroup = new THREE.Group();
-    this.weaponGroup.position.set(0.14, -0.06, 0.38);
-    this.weaponGroup.rotation.set(0, -0.06, 0);
+    this.weaponGroup.position.set(0.14, -0.05, 0.48); // 槍身向前推出，完全展現在體外
+    this.weaponGroup.rotation.set(0, -0.05, 0);
 
     // 鋼製衝壓機匣
-    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.36), this.gunMat);
+    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.054, 0.088, 0.40), this.gunMat);
     this.weaponGroup.add(gunBody);
 
-    // 金屬槍管與導氣系統
-    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.38, 8), this.gunMat);
+    // 金屬長槍管
+    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.42, 8), this.gunMat);
     gunBarrel.rotation.x = Math.PI / 2;
-    gunBarrel.position.set(0, 0.018, 0.32);
+    gunBarrel.position.set(0, 0.02, 0.38);
     this.weaponGroup.add(gunBarrel);
 
-    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.22, 8), this.gunMat);
+    // 導氣管
+    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.26, 8), this.gunMat);
     gasTube.rotation.x = Math.PI / 2;
-    gasTube.position.set(0, 0.038, 0.24);
+    gasTube.position.set(0, 0.042, 0.28);
     this.weaponGroup.add(gasTube);
 
-    // 前準星座與斜口制退器
-    const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.042, 0.02), this.gunMat);
-    frontSight.position.set(0, 0.04, 0.46);
+    // 前準星座
+    const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.046, 0.02), this.gunMat);
+    frontSight.position.set(0, 0.044, 0.52);
     this.weaponGroup.add(frontSight);
 
-    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.045, 8), this.gunMat);
+    // 45 度經典斜口槍口制退器 (Slant Muzzle)
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.05, 8), this.gunMat);
     muzzle.rotation.x = Math.PI / 2;
-    muzzle.position.set(0, 0.018, 0.51);
+    muzzle.position.set(0, 0.02, 0.58);
     this.weaponGroup.add(muzzle);
 
     // 俄式紅棕木質上下護木
-    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.054, 0.072, 0.18), this.woodMat);
-    handguard.position.set(0, 0.015, 0.14);
+    const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.078, 0.22), this.woodMat);
+    handguard.position.set(0, 0.016, 0.16);
     this.weaponGroup.add(handguard);
 
-    // 30 發弧形香蕉鋼製彈匣
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.16, 0.075), this.gunMat);
-    mag.position.set(0, -0.11, 0.06);
-    mag.rotation.x = 0.28;
+    // 30 發弧形香蕉鋼製彈匣 (超醒目 CS AK 特徵)
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.18, 0.08), this.gunMat);
+    mag.position.set(0, -0.12, 0.07);
+    mag.rotation.x = 0.3;
     this.weaponGroup.add(mag);
 
-    // 木質下斜槍托
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.09, 0.22), this.woodMat);
-    stock.position.set(0, -0.015, -0.25);
+    // 木質下斜槍托 (抵在右肩前)
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.096, 0.26), this.woodMat);
+    stock.position.set(0, -0.018, -0.30);
     stock.rotation.x = -0.12;
     this.weaponGroup.add(stock);
 
@@ -413,8 +475,8 @@ export class AIBot {
 
     // 槍火光 (星形十字)
     const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true });
-    this.flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.18), flashMat);
-    this.flashMesh.position.set(0.14, 1.28, 0.9);
+    this.flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), flashMat);
+    this.flashMesh.position.set(0.14, 1.28, 1.15); // 位於槍口前方
     this.flashMesh.visible = false;
     this.group.add(this.flashMesh);
   }
