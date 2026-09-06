@@ -77,8 +77,8 @@ export class Game {
     this.bots = [
       new AIBot(this.sceneManager.scene, 'Phoenix', new THREE.Vector3(0, 0, -12), botOptions),
       new AIBot(this.sceneManager.scene, 'Cobra', new THREE.Vector3(-14, 0, -14), botOptions),
-      new AIBot(this.sceneManager.scene, 'Viper', new THREE.Vector3(15, 3, -18), botOptions),
-      new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-25, 0, 8), botOptions)
+      new AIBot(this.sceneManager.scene, 'Viper', new THREE.Vector3(14, 0, -10), botOptions),
+      new AIBot(this.sceneManager.scene, 'Hunter', new THREE.Vector3(-22, 0, 6), botOptions)
     ];
 
     // 11. 武器背包管理器

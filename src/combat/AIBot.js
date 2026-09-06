@@ -169,12 +169,12 @@ export class AIBot {
   }
 
   getRandomWaypoint() {
-    // 在出生點半徑 12m 內隨機巡邏點
+    // 在出生點半徑 10m 內隨機巡邏點 (高度隨地面自適應)
     const angle = Math.random() * Math.PI * 2;
-    const dist = 3.0 + Math.random() * 9.0;
+    const dist = 3.0 + Math.random() * 8.0;
     return new THREE.Vector3(
       this.spawnPos.x + Math.cos(angle) * dist,
-      this.spawnPos.y,
+      0,
       this.spawnPos.z + Math.sin(angle) * dist
     );
   }
@@ -225,11 +225,11 @@ export class AIBot {
     this.isDead = true;
     this.respawnTimer = 4.0; // 4 秒後重生
 
-    // 倒地姿勢
+    // 倒地姿勢 (平躺於當前地面高度)
     this.group.rotation.x = -Math.PI / 2;
-    this.group.position.y = this.spawnPos.y - 0.7;
     this.uiSprite.visible = false;
     this.flashMesh.visible = false;
+    this.resetLegs();
 
     if (this.onKilled) {
       this.onKilled(this, isHeadshot);
@@ -257,12 +257,15 @@ export class AIBot {
 
     const now = performance.now() * 0.001;
 
-    // 熄滅槍火
+    // 1. 每幀進行地形與重力貼地檢測 (杜絕浮空與踩空問題)
+    this.snapToGround(delta);
+
+    // 2. 熄滅槍火
     if (this.flashMesh.visible && now > this.flashOffTime) {
       this.flashMesh.visible = false;
     }
 
-    // 計算與玩家之距離
+    // 3. 計算與玩家之距離
     const distToPlayer = this.group.position.distanceTo(playerPos);
 
     // AI 狀態機轉換 (若玩家在 35m 內且存活，進入戰鬥狀態)
@@ -279,8 +282,33 @@ export class AIBot {
     }
   }
 
+  /**
+   * 透過八叉樹 (Octree) 進行垂直地面求交，確保 Bot 雙腳永遠緊貼地面、斜坡與平台
+   */
+  snapToGround(delta) {
+    if (!this.worldCollision) return;
+
+    // 從 Bot 當前 XZ 上方 30m 垂直向下發射射線
+    const downRay = new THREE.Ray(
+      new THREE.Vector3(this.group.position.x, 30, this.group.position.z),
+      new THREE.Vector3(0, -1, 0)
+    );
+    const hit = this.worldCollision.rayIntersect(downRay);
+
+    if (hit) {
+      const targetY = hit.point.y;
+      if (this.group.position.y > targetY) {
+        // 重力下墜 (每秒 20m 墜地)
+        this.group.position.y = Math.max(targetY, this.group.position.y - 20.0 * delta);
+      } else {
+        // 上階梯或上坡立即抬升
+        this.group.position.y = targetY;
+      }
+    }
+  }
+
   updateCombat(delta, playerPos, distToPlayer, now) {
-    // 轉向玩家
+    // 轉向玩家 (僅圍繞 Y 軸旋轉，不抬頭仰角避免模型傾斜)
     const lookTarget = new THREE.Vector3(playerPos.x, this.group.position.y, playerPos.z);
     this.group.lookAt(lookTarget);
 
